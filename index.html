@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e0a08">
+<title>越州行 · 钗头令</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0e0a08;
+    font-family: "Songti SC", "SimSun", "Noto Serif SC", Georgia, serif; color: #2a1e14;
+    touch-action: manipulation; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse at 20% 10%, rgba(90,50,20,0.18), transparent 55%),
+      radial-gradient(ellipse at 80% 90%, rgba(60,20,20,0.22), transparent 55%),
+      #0e0a08; }
+  #stage { position: fixed; inset: 0; display: flex; justify-content: center; align-items: stretch; z-index: 1; }
+  #game { position: relative; width: 100%; max-width: 600px; height: 100vh; height: 100dvh;
+    background: #f2e8d2; overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: 0 0 0 1px #3a2a18, 0 0 0 6px #1a120c, 0 30px 80px rgba(0,0,0,0.9); }
+  #topbar { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center;
+    padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+    background: linear-gradient(180deg, #3a1a10 0%, #2a1208 100%);
+    border-bottom: 1px solid #5a3a1a; position: relative; z-index: 10; }
+  #title-wrap { display: flex; align-items: baseline; gap: 6px; }
+  #title { font-size: clamp(14px, 3.8vw, 18px); color: #f7e8c8; letter-spacing: 0.3em; font-weight: bold; }
+  #title-seal { display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(16px, 4.5vw, 20px); height: clamp(16px, 4.5vw, 20px);
+    background: #8b1a1a; color: #f7e8c8; font-size: clamp(8px, 2.2vw, 10px); border-radius: 2px;
+    letter-spacing: 0; transform: rotate(-4deg); }
+  #stats { display: flex; gap: 5px; align-items: center; }
+  .stat-coin { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: clamp(30px, 8vw, 38px); height: clamp(30px, 8vw, 38px); border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f5e6c0, #d8b878 50%, #a07a3a 100%);
+    box-shadow: inset 0 0 0 1px rgba(120,80,30,0.5), 0 1px 2px rgba(0,0,0,0.4);
+    color: #4a2a10; font-size: clamp(6px, 1.6vw, 8px); letter-spacing: 0.05em; }
+  .stat-coin .val { font-weight: bold; font-size: clamp(12px, 3.2vw, 16px); line-height: 1; color: #3a1a08;
+    transition: transform 0.2s; display: inline-block; }
+  .stat-coin .val.bump { transform: scale(1.4); }
+  .stat-coin.heart { background: radial-gradient(circle at 35% 30%, #f5d0c8, #c87868 50%, #8b1a1a 100%); }
+  .stat-coin.heart .val { color: #f7e8c8; }
+  #loopBadge { font-size: clamp(8px, 2vw, 10px); padding: 2px 6px; border: 1px solid #c9a227;
+    color: #f7e8c8; border-radius: 2px; letter-spacing: 0.1em; white-space: nowrap; background: rgba(139,26,26,0.4); }
+  #route { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center;
+    padding: 6px calc(14px + env(safe-area-inset-right)) 6px calc(14px + env(safe-area-inset-left));
+    background: #2a1208; border-bottom: 1px solid #3a2018; position: relative; z-index: 10; }
+  #route .node { font-size: clamp(9px, 2.3vw, 11px); color: #6b5a4a; letter-spacing: 0.06em;
+    position: relative; padding-left: 12px; transition: color 0.3s; }
+  #route .node::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: #5a4a3a; transition: background 0.3s; }
+  #route .node.done { color: #8ba860; }
+  #route .node.done::before { background: #8ba860; }
+  #route .node.active { color: #f7e8c8; font-weight: bold; }
+  #route .node.active::before { background: #c9a227;
+    box-shadow: 0 0 0 2px rgba(201,162,39,0.3), 0 0 6px rgba(201,162,39,0.7);
+    animation: nodePulse 1.6s ease-in-out infinite; }
+  @keyframes nodePulse { 0%,100% { box-shadow: 0 0 0 2px rgba(201,162,39,0.3), 0 0 6px rgba(201,162,39,0.7); }
+    50% { box-shadow: 0 0 0 4px rgba(201,162,39,0.15), 0 0 12px rgba(201,162,39,0.9); } }
+  #main { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain; display: flex; flex-direction: column;
+    padding: 12px 14px; background: #f2e8d2; position: relative; z-index: 3; }
+  #main::-webkit-scrollbar { width: 3px; }
+  #main::-webkit-scrollbar-thumb { background: rgba(139,107,58,0.4); border-radius: 2px; }
+  .card { background: rgba(255,250,235,0.95); border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(60,40,20,0.12), inset 0 0 0 1px rgba(139,107,58,0.15);
+    padding: 14px; margin-bottom: 10px; }
+  .card-title { font-size: clamp(12px, 3vw, 14px); color: #8b7355; letter-spacing: 0.15em;
+    margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .card-title .tag { font-size: clamp(10px, 2.4vw, 11px); color: #a08a6a; letter-spacing: 0.05em; }
+  #sceneBox { display: block; }
+  #sceneBox .place { display: inline-block; padding: 2px 10px; background: #8b1a1a; color: #f7e8c8;
+    font-size: clamp(11px, 2.8vw, 13px); letter-spacing: 0.2em; border-radius: 3px; margin-bottom: 8px; }
+  #sceneBox .desc-text { font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a; line-height: 1.85; }
+  #sceneBox.enter { animation: cardIn 0.5s cubic-bezier(0.2,0.8,0.3,1); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .opt { display: block; width: 100%; text-align: left; padding: 14px 16px; margin: 8px 0;
+    background: #fffdf5; border: 1.5px solid rgba(139,107,58,0.25); border-radius: 6px;
+    font-size: clamp(13px, 3.6vw, 16px); font-family: inherit; color: #2a1e14;
+    cursor: pointer; line-height: 1.6; min-height: 50px;
+    box-shadow: 0 1px 3px rgba(60,40,20,0.08); transition: all 0.15s; }
+  .opt:active:not(:disabled) { transform: scale(0.98); background: #f0e8d8; }
+  .opt:disabled { cursor: default; opacity: 0.9; }
+  .opt.correct { background: linear-gradient(90deg, #eaf3e0, #d8e8c8); border-color: #6b8b4a; color: #2a4a1a; }
+  .opt.wrong { background: linear-gradient(90deg, #f8e0e0, #f0d0d0); border-color: #8b1a1a; color: #5a1a1a; }
+  .opt.heart-choice { border-color: #c9a227; background: linear-gradient(90deg, #fdfaf0, #f7edd0); }
+  .token { display: inline-block; padding: 8px 14px; background: linear-gradient(135deg, #f7eed8, #e8d8b0);
+    border: 1px solid #a08a5a; border-radius: 4px; font-size: clamp(11px, 3vw, 14px); color: #6b4a1a;
+    cursor: pointer; user-select: none; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .token:active { transform: scale(0.96); }
+  #feedback { padding: 10px calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+    font-size: clamp(12px, 3.2vw, 14px); color: #6b4a1a; line-height: 1.75; flex: 0 0 auto;
+    background: rgba(255,250,235,0.5); border-top: 1px solid rgba(90,60,30,0.15); min-height: 44px; }
+  #feedback.flash { animation: feedbackGlow 0.7s ease-out; }
+  @keyframes feedbackGlow { 0% { background: rgba(201,162,39,0.2); } 100% { background: rgba(255,250,235,0.5); } }
+  #clueBar { padding: 8px calc(14px + env(safe-area-inset-right)) 8px calc(14px + env(safe-area-inset-left));
+    font-size: clamp(11px, 2.9vw, 13px); color: #6b4a1a; background: rgba(240,228,200,0.7);
+    border-top: 1px solid rgba(90,60,30,0.15); display: none; line-height: 1.6; flex: 0 0 auto; }
+  #clueBar strong { color: #8b1a1a; }
+  #actions { position: relative; flex: 0 0 auto;
+    padding: 13px calc(16px + env(safe-area-inset-right)) calc(13px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    display: flex; gap: 10px; align-items: center;
+    background: linear-gradient(180deg, #2a1208 0%, #1a0a04 100%);
+    border-top: 1px solid #4a3020; min-height: 68px; justify-content: flex-end; flex-wrap: wrap; }
+  #actions::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent 2%, rgba(201,162,39,0.75) 18%, rgba(201,162,39,0.75) 82%, transparent 98%); }
+  .btn { position: relative; overflow: hidden; padding: 12px 24px;
+    background: linear-gradient(180deg, #a02020 0%, #821414 48%, #5a0e0e 100%);
+    color: #f7e8c8; border: 1px solid #3a0a0a; border-radius: 3px;
+    font-size: clamp(13px, 3.4vw, 15px); font-family: inherit; cursor: pointer;
+    letter-spacing: 0.2em; text-indent: 0.2em; min-height: 46px; font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,214,168,0.28), inset 0 -2px 0 rgba(0,0,0,0.28),
+      0 2px 6px rgba(0,0,0,0.4); transition: all 0.15s; }
+  .btn::before, .btn::after { content: ""; position: absolute; left: 7px; right: 7px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(201,162,39,0.85), transparent); }
+  .btn::before { top: 3px; } .btn::after { bottom: 3px; }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: linear-gradient(180deg, rgba(201,162,39,0.11), rgba(201,162,39,0.03));
+    color: #c9a227; border: 1px solid rgba(201,162,39,0.85);
+    box-shadow: inset 0 0 0 1px rgba(201,162,39,0.12); font-weight: normal; text-shadow: none; }
+  .btn.ghost::before, .btn.ghost::after { background: linear-gradient(90deg, transparent, rgba(201,162,39,0.45), transparent); }
+  .btn:disabled { opacity: 0.4; }
+  #overlayInner { display: none; position: absolute; inset: 0; z-index: 380;
+    background: #f2e8d2; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom); }
+  #overlayInner.show { display: block; animation: cardIn 0.3s ease-out; }
+  #dialogInner { max-width: 540px; margin: 0 auto; padding: 16px 14px; }
+  #dialogHead { display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(90,60,30,0.2); }
+  #dialogHead h3 { font-size: clamp(14px, 3.6vw, 17px); color: #3a1a10; letter-spacing: 0.15em; }
+  #dialogClose { background: none; border: none; font-size: 22px; color: #8b7355; cursor: pointer; padding: 0 8px; }
+  .npc-line { display: flex; align-items: center; margin-bottom: 10px; }
+  .npc-face { width: clamp(46px, 12vw, 58px); height: clamp(46px, 12vw, 58px); border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #faf0d8, #e8d4a8);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: clamp(22px, 6vw, 32px); margin-right: 12px; border: 2px solid #8b6b3a; flex: 0 0 auto; }
+  .npc-name { font-size: clamp(13px, 3.5vw, 16px); color: #3a1a10; font-weight: bold; }
+  .npc-role { font-size: clamp(11px, 2.8vw, 13px); color: #8b7355; }
+  .testimony { padding: 12px 14px; background: rgba(255,250,235,0.7); border-radius: 4px;
+    border-left: 3px solid #8b7355; font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a;
+    line-height: 1.85; margin-bottom: 10px; }
+  .contradiction { padding: 12px 14px; background: rgba(248,232,224,0.7); border-radius: 4px;
+    border-left: 3px solid #8b1a1a; font-size: clamp(12px, 3.2vw, 15px); color: #5a1a1a;
+    line-height: 1.75; margin-bottom: 10px; }
+  .contradiction.locked { background: rgba(240,232,208,0.6); border-left-color: #a08a6a; color: #8b7355; }
+  .contradiction .pressBtn { margin-top: 8px; padding: 9px 16px;
+    background: linear-gradient(180deg, #8b1a1a 0%, #5a0e0e 100%); color: #f7e8c8;
+    border: none; border-radius: 4px; font-size: clamp(12px, 3.2vw, 14px);
+    font-family: inherit; cursor: pointer; min-height: 42px; }
+  .contradiction .pressBtn:disabled { opacity: 0.4; }
+  .zi-choices { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .zi-btn { padding: 18px 0; background: #fffdf5; border: 1.5px solid rgba(139,107,58,0.25);
+    border-radius: 6px; font-size: clamp(28px, 8vw, 40px); font-family: inherit; color: #3a1a10;
+    cursor: pointer; text-align: center; box-shadow: 0 1px 3px rgba(60,40,20,0.08); transition: all 0.15s; }
+  .zi-btn:active:not(:disabled) { transform: scale(0.94); }
+  .zi-btn.correct { background: #eaf3e0; border-color: #6b8b4a; color: #2a4a1a; }
+  .zi-btn.wrong { background: #f8e0e0; border-color: #8b1a1a; color: #5a1a1a; }
+  .zi-prompt { font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a; line-height: 1.75; margin-bottom: 8px; }
+  .zi-prompt strong { color: #8b1a1a; }
+  .shi-stem { padding: 14px 16px; background: rgba(255,250,235,0.7); border-radius: 4px;
+    border-left: 3px solid #c9a227; font-size: clamp(15px, 4vw, 19px); color: #2a1e14;
+    line-height: 1.95; margin-bottom: 10px; letter-spacing: 0.1em; }
+  .shi-stem .hint { font-size: clamp(11px, 2.9vw, 13px); color: #8b7355; letter-spacing: 0;
+    display: block; margin-top: 4px; }
+  .pin-slots { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 14px 10px;
+    background: rgba(240,228,200,0.6); border: 1.5px dashed #a08a5a; border-radius: 5px;
+    min-height: 64px; margin-bottom: 10px; }
+  .pin-slot { width: clamp(36px, 10vw, 48px); height: clamp(46px, 12.5vw, 60px);
+    border: 1px solid #a08a5a; border-radius: 3px;
+    background: linear-gradient(180deg, #faf0d8, #e8d4a8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(20px, 5vw, 25px); color: #3a1a10; }
+  .pin-slot.filled { background: linear-gradient(180deg, #f0e0b8, #dcc890); border-color: #8b6b3a; cursor: pointer; }
+  .pin-slot.ok { background: #eaf3e0; border-color: #6b8b4a; }
+  .pin-pool { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .pin-tile { width: clamp(36px, 10vw, 48px); height: clamp(46px, 12.5vw, 60px);
+    border: 1.5px solid #a08a5a; border-radius: 3px;
+    background: #fffdf5; display: flex; align-items: center; justify-content: center;
+    font-size: clamp(20px, 5vw, 25px); color: #3a1a10; cursor: pointer; }
+  .pin-tile:active { transform: scale(0.92); }
+  .pin-tile.used { visibility: hidden; }
+  .pin-actions { display: flex; justify-content: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .pin-undo { padding: 10px 18px; background: transparent; color: #8b1a1a;
+    border: 1.5px solid #8b1a1a; border-radius: 5px;
+    font-size: clamp(12px, 3.2vw, 14px); font-family: inherit; cursor: pointer; min-height: 42px; }
+  .pin-undo:disabled { opacity: 0.3; }
+  .wx-intro { font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a; line-height: 1.8; margin-bottom: 12px; }
+  .wx-board { display: grid; grid-template-columns: 1fr 44px 1fr; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .wx-side { text-align: center; padding: 12px 6px; background: #fffdf5;
+    border: 1.5px solid rgba(139,107,58,0.25); border-radius: 6px; }
+  .wx-side .who { font-size: clamp(11px, 2.8vw, 13px); color: #8b7355; margin-bottom: 4px; letter-spacing: 0.1em; }
+  .wx-side .elem { font-size: clamp(26px, 7vw, 36px); font-weight: bold; color: #8b1a1a;
+    height: clamp(36px, 9vw, 46px); line-height: clamp(36px, 9vw, 46px); display: inline-block; }
+  .wx-vs { font-size: clamp(11px, 3vw, 14px); color: #8b7355; text-align: center; }
+  .wx-rounds { font-size: clamp(12px, 3.2vw, 14px); color: #3a2a1a; text-align: center; margin-bottom: 12px;
+    padding: 8px 0; background: rgba(255,250,235,0.7); border-radius: 4px; }
+  .wx-rounds .win { color: #6b8b4a; font-weight: bold; }
+  .wx-rounds .lose { color: #8b1a1a; font-weight: bold; }
+  .wx-rounds .draw { color: #8b7355; }
+  .wx-choices { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .wx-elem { width: clamp(52px, 15vw, 68px); height: clamp(52px, 15vw, 68px);
+    border: 1.5px solid rgba(139,107,58,0.3); border-radius: 6px;
+    background: #fffdf5; font-size: clamp(20px, 5.5vw, 26px); font-family: inherit; color: #3a1a10;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .wx-elem:active:not(:disabled) { transform: scale(0.92); }
+  .wx-elem:disabled { opacity: 0.4; }
+  .wx-elem .small { font-size: clamp(9px, 2.4vw, 11px); color: #8b7355; }
+  .wx-result { margin-top: 10px; padding: 10px; background: rgba(255,250,235,0.7); border-radius: 4px;
+    font-size: clamp(12px, 3.2vw, 15px); color: #3a2a1a; text-align: center; line-height: 1.7; min-height: 44px; }
+  .qp-board { display: grid; grid-template-columns: 1fr 44px 1fr; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .qp-side { text-align: center; padding: 12px 6px; background: #fffdf5;
+    border: 1.5px solid rgba(139,107,58,0.25); border-radius: 6px; }
+  .qp-side .who { font-size: clamp(11px, 2.8vw, 13px); color: #8b7355; margin-bottom: 4px; letter-spacing: 0.1em; }
+  .qp-side .hand { font-size: clamp(30px, 8.5vw, 42px); height: clamp(42px, 11vw, 54px); line-height: clamp(42px, 11vw, 54px); display: inline-block; }
+  .qp-vs { font-size: clamp(11px, 3vw, 14px); color: #8b7355; text-align: center; }
+  .qp-rounds { font-size: clamp(12px, 3.2vw, 14px); color: #3a2a1a; text-align: center; margin-bottom: 12px;
+    padding: 8px 0; background: rgba(255,250,235,0.7); border-radius: 4px; }
+  .qp-rounds .win { color: #6b8b4a; font-weight: bold; }
+  .qp-rounds .lose { color: #8b1a1a; font-weight: bold; }
+  .qp-rounds .draw { color: #8b7355; }
+  .qp-choices { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .qp-elem { width: clamp(60px, 17vw, 78px); height: clamp(60px, 17vw, 78px);
+    border: 1.5px solid rgba(139,107,58,0.3); border-radius: 8px;
+    background: #fffdf5; font-size: clamp(24px, 6.5vw, 32px); font-family: inherit; color: #3a1a10;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .qp-elem:active:not(:disabled) { transform: scale(0.92); }
+  .qp-elem:disabled { opacity: 0.4; }
+  .qp-elem .small { font-size: clamp(9px, 2.4vw, 11px); color: #8b7355; }
+  .qp-result { margin-top: 10px; padding: 10px; background: rgba(255,250,235,0.7); border-radius: 4px;
+    font-size: clamp(12px, 3.2vw, 15px); color: #3a2a1a; text-align: center; line-height: 1.7; min-height: 44px; }
+  .dialect-box { padding: 16px; background: #fffdf5; border-radius: 6px;
+    border-left: 3px solid #c9a227; margin-bottom: 10px; }
+  .dialect-box .word { font-size: clamp(24px, 7vw, 34px); color: #8b1a1a; font-weight: bold;
+    letter-spacing: 0.08em; text-align: center; margin-bottom: 4px; }
+  .dialect-box .pron { font-size: clamp(11px, 3vw, 14px); color: #8b7355; text-align: center; }
+  .bridge-box { padding: 14px; background: #fffdf5; border-radius: 6px;
+    border-left: 3px solid #c9a227; margin-bottom: 10px;
+    font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a; line-height: 1.8; }
+  .bridge-box strong { color: #8b1a1a; }
+  .bridge-choices { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+  .bridge-btn { padding: 14px 0; background: #fffdf5; border: 1.5px solid rgba(139,107,58,0.3);
+    border-radius: 5px; font-size: clamp(20px, 5.5vw, 28px); font-family: inherit; color: #3a1a10;
+    cursor: pointer; text-align: center; }
+  .bridge-btn.correct { background: #eaf3e0; border-color: #6b8b4a; }
+  .bridge-btn.wrong { background: #f8e0e0; border-color: #8b1a1a; }
+  .heart-choice-box { padding: 14px; background: #fdfaf0; border-radius: 6px;
+    border-left: 3px solid #8b1a1a; margin: 10px 0;
+    font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a; line-height: 1.8; }
+  #shenScene { display: none; margin-bottom: 10px; }
+  #shenScene.show { display: block; animation: cardIn 0.5s ease-out; }
+  .scene-canvas { position: relative; width: 100%; height: clamp(240px, 72vw, 320px);
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(139,107,58,0.3); }
+  .scene-canvas.night { background:
+      radial-gradient(ellipse at 50% 20%, rgba(80,60,100,0.35), transparent 60%),
+      linear-gradient(180deg, #1a1a2e 0%, #2a2418 60%, #3a2e1e 100%); }
+  .scene-canvas.day { background:
+      radial-gradient(ellipse at 50% 10%, rgba(255,240,200,0.7), transparent 50%),
+      linear-gradient(180deg, #b8d4e8 0%, #d8e4e8 40%, #d8cca8 100%); }
+  .scene-deco { position: absolute; font-size: clamp(18px, 5vw, 26px); opacity: 0.6; pointer-events: none; }
+  .scene-wall { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 44%; height: 44%;
+    background: linear-gradient(180deg, #e8dcc0, #d8c8a8);
+    border: 2px solid #8b6b3a; border-radius: 4px;
+    box-shadow: inset 0 0 16px rgba(80,50,20,0.2);
+    display: flex; align-items: center; justify-content: center;
+    color: #5a3a1a; font-size: clamp(10px, 2.6vw, 13px);
+    letter-spacing: 0.18em; font-weight: bold; }
+  .scene-wall .wall-text { writing-mode: vertical-rl; text-orientation: upright; padding: 4px; }
+  .obj { position: absolute; display: flex; align-items: center; justify-content: center;
+    min-width: 42px; min-height: 42px; padding: 6px 10px;
+    background: rgba(255,250,235,0.95); border: 1.5px solid #8b6b3a; border-radius: 5px;
+    font-size: clamp(11px, 2.8vw, 13px); color: #3a1a10; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: all 0.2s; z-index: 5; user-select: none; }
+  .obj:active { transform: scale(0.94); }
+  .obj.npc { background: radial-gradient(circle at 40% 35%, #faf0d8, #e8d4a8);
+    border-radius: 50%; min-width: 46px; min-height: 46px; padding: 4px;
+    font-size: clamp(18px, 4.5vw, 24px); border: 2px solid #8b1a1a; }
+  .obj .label { position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 2px; font-size: clamp(8px, 2.2vw, 10px);
+    color: #f7e8c8; background: rgba(58,26,16,0.9);
+    padding: 1px 6px; border-radius: 2px; white-space: nowrap; pointer-events: none; }
+  .obj.npc .label { background: rgba(139,26,26,0.95); }
+  .obj.gone { opacity: 0.4; pointer-events: none; }
+  .obj.glow { animation: objGlow 0.7s ease-out; }
+  @keyframes objGlow { 50% { box-shadow: 0 0 20px rgba(201,162,39,0.8), 0 0 0 3px rgba(201,162,39,0.3); } }
+  .obj.shake { animation: objShake 0.4s; }
+  @keyframes objShake { 25%,75% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
+  #cluePopup { position: absolute; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px);
+    width: min(340px, 88%); background: #fffdf5; border: 2px solid #8b6b3a; border-radius: 8px;
+    padding: 12px 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.5); z-index: 200;
+    opacity: 0; pointer-events: none; transition: all 0.35s cubic-bezier(0.2,0.8,0.3,1); }
+  #cluePopup.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #cluePopup .cp-tag { display: inline-block; padding: 2px 8px; background: #8b1a1a; color: #f7e8c8;
+    font-size: clamp(9px, 2.3vw, 11px); border-radius: 2px; letter-spacing: 0.15em; margin-bottom: 6px; }
+  #cluePopup .cp-title { font-size: clamp(13px, 3.4vw, 16px); color: #3a1a10; font-weight: bold; margin-bottom: 4px; }
+  #cluePopup .cp-desc { font-size: clamp(11px, 3vw, 13px); color: #5a3a1a; line-height: 1.7; }
+  #attitudeFloat { position: absolute; right: 16px; top: 92px; padding: 6px 12px;
+    background: rgba(58,26,16,0.95); color: #f7e8c8; font-size: clamp(11px, 3vw, 13px);
+    border-radius: 4px; z-index: 300; opacity: 0; pointer-events: none; transition: all 0.4s; }
+  #attitudeFloat.show { opacity: 1; transform: translateY(-6px); }
+  #topicPanel { display: none; position: absolute; inset: 0; z-index: 400;
+    background: #f2e8d2; flex-direction: column; }
+  #topicPanel.show { display: flex; animation: cardIn 0.3s ease-out; }
+  .tp-page { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 14px calc(16px + env(safe-area-inset-bottom)); display: none; }
+  .tp-page.show { display: block; }
+  .tp-page-inner { max-width: 540px; margin: 0 auto; }
+  .tp-head { display: flex; align-items: center; gap: 10px;
+    padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid rgba(90,60,30,0.2); }
+  .tp-face { width: clamp(48px, 13vw, 62px); height: clamp(48px, 13vw, 62px); border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #faf0d8, #e8d4a8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(24px, 6.5vw, 34px); border: 2px solid #8b1a1a; flex: 0 0 auto; }
+  .tp-name { font-size: clamp(14px, 3.8vw, 17px); color: #3a1a10; font-weight: bold; }
+  .tp-att { font-size: clamp(10px, 2.6vw, 12px); color: #8b7355; letter-spacing: 0.08em; margin-top: 2px; }
+  .tp-close { margin-left: auto; background: none; border: none;
+    font-size: clamp(20px, 5vw, 24px); color: #8b7355; cursor: pointer; padding: 0 8px; }
+  .tp-reply-card { padding: 16px; background: #fffdf5; border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(60,40,20,0.12); margin-bottom: 14px; position: relative; }
+  .tp-reply-card .who-tag { display: inline-block; padding: 2px 8px;
+    background: #8b7355; color: #f7e8c8; font-size: clamp(10px, 2.6vw, 12px);
+    border-radius: 2px; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .tp-reply-card .reply-text { font-size: clamp(14px, 3.6vw, 17px); color: #2a1e14; line-height: 1.85; }
+  .tp-reply-card.clue { border-left: 3px solid #8b1a1a; }
+  .tp-reply-card.clue .who-tag { background: #8b1a1a; }
+  .tp-topics { display: flex; flex-direction: column; gap: 8px; }
+  .topic-btn { padding: 12px 14px; text-align: left;
+    background: #fffdf5; border: 1.5px solid rgba(139,107,58,0.25); border-radius: 6px;
+    font-size: clamp(13px, 3.4vw, 15px); color: #2a1e14; font-family: inherit;
+    cursor: pointer; line-height: 1.6; transition: all 0.15s;
+    box-shadow: 0 1px 3px rgba(60,40,20,0.06); }
+  .topic-btn:active { transform: scale(0.98); background: #f0e8d8; }
+  .topic-btn.asked { background: #f0e8d8; color: #8b7355; cursor: default; opacity: 0.7; }
+  .tp-history-list { display: flex; flex-direction: column; gap: 6px; }
+  .tp-history-item { padding: 10px 12px; background: #fffdf5; border-radius: 4px;
+    font-size: clamp(12px, 3.2vw, 14px); color: #2a1e14; line-height: 1.6;
+    border-left: 2px solid #c9a227; }
+  .tp-history-item.me { background: #f7f0e0; color: #6b4a1a; font-style: italic; }
+  .tp-history-item .h-who { font-size: clamp(10px, 2.6vw, 12px); color: #8b7355;
+    letter-spacing: 0.08em; margin-bottom: 2px; }
+  #endScreen { display: none; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); text-align: center; overflow-y: auto;
+    -webkit-overflow-scrolling: touch; flex: 1 1 auto; position: relative; z-index: 3; }
+  #endScreen.show { display: block; }
+  #endScreen h2 { font-size: clamp(20px, 5vw, 26px); color: #3a1a10; letter-spacing: 0.35em;
+    margin-bottom: 14px; padding-left: 0.35em; position: relative; display: inline-block; }
+  #endScreen h2 .char { display: inline-block; opacity: 0;
+    animation: titleIn 0.5s cubic-bezier(0.2,0.8,0.3,1) forwards; }
+  @keyframes titleIn { from { opacity: 0; transform: translateY(14px) scale(0.85); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  #endScreen h2::after { content: "印"; position: absolute; right: -28px; bottom: 0;
+    width: 22px; height: 22px; background: #8b1a1a; color: #f7e8c8; font-size: 11px;
+    border-radius: 2px; display: flex; align-items: center; justify-content: center;
+    transform: rotate(-6deg); letter-spacing: 0; }
+  #endScreen .rank { font-size: clamp(28px, 7.2vw, 42px); color: #8b1a1a; font-weight: bold;
+    margin: 10px 0; letter-spacing: 0.2em; opacity: 0;
+    animation: rankIn 0.7s cubic-bezier(0.2,0.8,0.3,1) 0.4s forwards; }
+  @keyframes rankIn { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+  #endScreen .verdict { font-size: clamp(13px, 3.6vw, 16px); color: #3a1a10; line-height: 1.9; margin-bottom: 12px; }
+  #endScreen .detail { font-size: clamp(13px, 3.4vw, 16px); color: #3a2a1a; line-height: 1.85;
+    margin: 0 auto 16px; text-align: left; max-width: 96%; padding: 14px;
+    background: #fffdf5; border-radius: 6px; border-left: 3px solid #c9a227; }
+  #endScreen .truth-card { font-size: clamp(12px, 3.1vw, 14px); color: #5a3a1a; line-height: 1.9;
+    margin: 0 auto 16px; text-align: left; max-width: 96%; padding: 14px;
+    background: #fdfaf0; border-radius: 6px; border: 1px solid rgba(201,162,39,0.5); }
+  #endScreen .truth-card .tc-title { font-size: clamp(12px, 3vw, 14px); color: #8b1a1a;
+    letter-spacing: 0.15em; margin-bottom: 8px; font-weight: bold; }
+  #endScreen .truth-card p { margin-bottom: 8px; }
+  #endScreen .truth-card p:last-child { margin-bottom: 0; }
+  #endScreen .meta { font-size: clamp(11px, 2.9vw, 13px); color: #8b7355; line-height: 1.8; margin-bottom: 14px; }
+  #endScreen .unlock { background: #fdfaf0; border: 1px solid #c9a227; border-radius: 6px;
+    padding: 12px 14px; font-size: clamp(12px, 3.1vw, 14px); color: #6b4a1a;
+    line-height: 1.8; max-width: 96%; margin: 0 auto 16px; text-align: left; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="game">
+    <div id="topbar">
+      <div id="title-wrap"><span id="title">钗 头 令</span><span id="title-seal">越</span></div>
+      <div id="stats">
+        <div class="stat-coin" title="酒令签"><span class="val" id="tokenCount">2</span><span>签</span></div>
+        <div class="stat-coin" title="线索"><span class="val" id="clueCount">0</span><span>线</span></div>
+        <div class="stat-coin" title="胆识"><span class="val" id="gritVal">3</span><span>胆</span></div>
+        <div class="stat-coin heart" title="心证"><span class="val" id="heartVal">0</span><span>心</span></div>
+        <span id="loopBadge">一 周 目</span>
+      </div>
+    </div>
+    <div id="route">
+      <span class="node" data-i="0">鲁迅故里</span>
+      <span class="node" data-i="1">光相桥</span>
+      <span class="node" data-i="2">兰亭</span>
+      <span class="node" data-i="3">咸亨酒店</span>
+      <span class="node" data-i="4">沈园</span>
+    </div>
+    <div id="main">
+      <div id="sceneBox"></div>
+      <div id="shenScene"><div class="scene-canvas night" id="sceneCanvas"></div></div>
+      <div id="deduceArea" class="card" style="display:none;">
+        <div class="card-title">推 演 · 排 出 案 发 顺 序</div>
+        <div id="ddHint" style="font-size:clamp(11px,3vw,13px);color:#8b7355;line-height:1.7;margin-bottom:10px;">从下方线索中选择一条，填入对应时间槽。四条全对才能进入指认。</div>
+        <div id="ddSlots" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+        <div class="card-title" style="margin-top:12px;border-top:1px solid rgba(90,60,30,0.15);padding-top:10px;">可 选 线 索</div>
+        <div id="ddClueList" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding:6px;background:rgba(240,228,200,0.5);border-radius:4px;"></div>
+      </div>
+      <div id="panel"></div>
+      <div id="endScreen"></div>
+    </div>
+    <div id="feedback"></div>
+    <div id="clueBar"></div>
+    <div id="actions"></div>
+
+    <div id="cluePopup"><div class="cp-tag" id="cpTag">新线索</div><div class="cp-title" id="cpTitle"></div><div class="cp-desc" id="cpDesc"></div></div>
+    <div id="attitudeFloat"></div>
+
+    <div id="overlayInner">
+      <div id="dialogInner">
+        <div id="dialogHead"><h3 id="dialogTitle">问 询</h3><button id="dialogClose" onclick="closeOverlay()">✕</button></div>
+        <div id="dialogBody"></div>
+      </div>
+    </div>
+
+    <div id="topicPanel">
+      <div class="tp-page" id="tpPageReply">
+        <div class="tp-page-inner">
+          <div class="tp-head">
+            <div class="tp-face" id="tpFace">🎭</div>
+            <div><div class="tp-name" id="tpName"></div><div class="tp-att" id="tpAtt"></div></div>
+            <button class="tp-close" onclick="closeTopicPanel()">✕</button>
+          </div>
+          <div id="tpReplyArea"></div>
+        </div>
+      </div>
+      <div class="tp-page" id="tpPageTopics">
+        <div class="tp-page-inner">
+          <div class="tp-head">
+            <div class="tp-face" id="tpFace2">🎭</div>
+            <div><div class="tp-name" id="tpName2"></div><div class="tp-att" id="tpAtt2"></div></div>
+            <button class="tp-close" onclick="closeTopicPanel()">✕</button>
+          </div>
+          <div class="tp-topics" id="tpTopics"></div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:flex-end;" id="tpTopicActions"></div>
+        </div>
+      </div>
+      <div class="tp-page" id="tpPageHistory">
+        <div class="tp-page-inner">
+          <div class="tp-head">
+            <div class="tp-face" id="tpFace3">🎭</div>
+            <div><div class="tp-name" id="tpName3"></div><div class="tp-att">对话记录</div></div>
+            <button class="tp-close" onclick="closeTopicPanel()">✕</button>
+          </div>
+          <div class="tp-history-list" id="tpHistoryList"></div>
+          <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+            <button class="btn ghost" onclick="showTopicPage('topics')">← 回到话题</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   音效引擎
+   ============================================================ */
+const AudioEngine = (() => {
+  let ctx = null;
+  function getCtx() {
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; } }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  function tone({freq=440,dur=0.15,type='sine',vol=0.15,delay=0,sweep=null}) {
+    const c = getCtx(); if (!c) return;
+    const t0 = c.currentTime + delay;
+    const osc = c.createOscillator(), gain = c.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t0);
+    if (sweep) osc.frequency.exponentialRampToValueAtTime(sweep, t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0); gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain); gain.connect(c.destination); osc.start(t0); osc.stop(t0 + dur + 0.02);
+  }
+  function noise({dur=0.1,vol=0.1,delay=0,filterFreq=1000}) {
+    const c = getCtx(); if (!c) return;
+    const t0 = c.currentTime + delay;
+    const buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(); src.buffer = buf;
+    const filter = c.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = filterFreq;
+    const gain = c.createGain(); gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filter); filter.connect(gain); gain.connect(c.destination);
+    src.start(t0); src.stop(t0 + dur);
+  }
+  return {
+    tap() { tone({freq:660,dur:0.06,vol:0.08}); },
+    clueGain() { tone({freq:880,dur:0.12,vol:0.12}); tone({freq:1320,dur:0.18,vol:0.1,delay:0.1}); },
+    clueLose() { tone({freq:330,dur:0.2,type:'triangle',vol:0.15,sweep:220}); noise({dur:0.15,vol:0.08,filterFreq:400}); },
+    ziCorrect() { tone({freq:784,dur:0.15,vol:0.13}); tone({freq:1046,dur:0.25,vol:0.12,delay:0.12}); },
+    ziWrong() { tone({freq:220,dur:0.3,type:'sawtooth',vol:0.12,sweep:110}); noise({dur:0.2,vol:0.08,filterFreq:300}); },
+    shiCorrect() { tone({freq:523,dur:0.14,vol:0.1}); tone({freq:659,dur:0.14,vol:0.1,delay:0.12}); tone({freq:784,dur:0.22,vol:0.1,delay:0.24}); },
+    shiWrong() { tone({freq:392,dur:0.15,type:'triangle',vol:0.1}); tone({freq:311,dur:0.25,type:'triangle',vol:0.1,delay:0.15}); },
+    pinCorrect() { noise({dur:0.4,vol:0.08,filterFreq:3000}); tone({freq:523,dur:0.15,vol:0.1}); tone({freq:784,dur:0.15,vol:0.1,delay:0.12}); tone({freq:1046,dur:0.3,vol:0.1,delay:0.24}); },
+    pinWrong() { tone({freq:300,dur:0.1,type:'sawtooth',vol:0.1}); noise({dur:0.2,vol:0.1,filterFreq:500}); },
+    wxWin() { tone({freq:523,dur:0.2,type:'triangle',vol:0.12}); tone({freq:659,dur:0.2,type:'triangle',vol:0.12,delay:0.15}); tone({freq:784,dur:0.35,type:'triangle',vol:0.12,delay:0.3}); },
+    wxLose() { tone({freq:196,dur:0.25,type:'sawtooth',vol:0.12,sweep:150}); noise({dur:0.3,vol:0.08,filterFreq:300}); },
+    wxDraw() { tone({freq:880,dur:0.1,vol:0.08}); },
+    chooseKiller() { tone({freq:220,dur:0.25,vol:0.12}); },
+    endGood() { tone({freq:523,dur:0.2,vol:0.12}); tone({freq:659,dur:0.2,vol:0.12,delay:0.18}); tone({freq:784,dur:0.25,vol:0.12,delay:0.36}); tone({freq:1046,dur:0.5,vol:0.12,delay:0.54}); },
+    endBad() { tone({freq:196,dur:0.4,type:'sawtooth',vol:0.12,sweep:98}); noise({dur:0.5,vol:0.1,filterFreq:250}); },
+    undo() { tone({freq:440,dur:0.08,type:'triangle',vol:0.08,sweep:330}); },
+    heart() { tone({freq:392,dur:0.2,vol:0.1}); tone({freq:523,dur:0.3,vol:0.1,delay:0.15}); },
+    objTap() { tone({freq:560,dur:0.08,type:'triangle',vol:0.1}); },
+    objLocked() { tone({freq:240,dur:0.12,type:'square',vol:0.06,sweep:180}); },
+    deduceWin() { tone({freq:660,dur:0.18,vol:0.12}); tone({freq:880,dur:0.28,vol:0.12,delay:0.15}); },
+    deduceFail() { tone({freq:280,dur:0.3,type:'sawtooth',vol:0.12,sweep:200}); }
+  };
+})();
+
+/* ============================================================
+   状态
+   ============================================================ */
+const state = {
+  scene: 0, phase: 'challenge', tokens: 2, clues: 0, grit: 3, heart: 0,
+  loop: 1, collectedClues: [], usedTokens: [], pressedContradictions: [],
+  ending: null, shen: null, killerCorrect: false, mastermindCorrect: false, scrapeChoice: null
+};
+function initShen() {
+  return {
+    discovered: [], attitudes: { chengzhu: 0, ashen: 0 },
+    askedTopics: { chengzhu: [], ashen: [] },
+    npcGone: false, deduceFailCount: 0, deduceSolved: false,
+    activeSlot: null, slotAssign: {},
+    dialogHistory: { chengzhu: [], ashen: [] },
+    currentNpc: null, _tipShown: false
+  };
+}
+// 推演实际需要的 4 条关键线索（与 deduceSlots 一一对应）
+const KEY_CLUES = ['掌柜与沈守拙的旧交','苏见山的血手','掌柜的按手','阿沈的等待'];
+
+/* ============================================================
+   场景数据
+   ============================================================ */
+const scenes = [
+  { place:'鲁迅故里',
+    desc:'三天前，一个自称"越州旧书商"的人托你到绍兴寻一卷失踪的词笺。你到了鲁迅中路，咸亨酒店门口，孔乙己铜像歪着头。铜像脚边有一片新撕的纸屑，身后不远处有人在盯着你。',
+    desc2:'第二周目。你又一次站在鲁迅中路。铜像脚下的纸屑还在，只是多了半枚鞋印——有人比你早到一步。阿桂从门里探出头，看见你，脸色变了一下。',
+    npc:{ name:'阿桂', role:'咸亨酒店伙计', face:'🍶',
+      testimony:[
+        {loop:1,text:'“寻词笺？我什么都没听说。不过……你是第三个来问这件事的人了。”'},
+        {loop:2,text:'“你又来了。上一次我没敢说全——沈守拙昨夜走的时候，不是一个人。戴斗笠的跟在他后面，隔了十几步。”'}
+      ],
+      contradictions:[
+        {id:'c0',loop:1,doubt:'阿桂说“什么都没听说”，却又说“你是第三个来问的”。',press:'“第三个来问？前两个是谁？”',reveal:'阿桂压低声音：“第一个是兰亭守亭的沈守拙，穿长衫。第二个戴斗笠，手上有道疤。他今天早上还来问过，‘词笺找到没有’。”',clue:'前两个问询者',gritCost:1},
+        {id:'c0b',loop:2,doubt:'【二周目】阿桂说戴斗笠的“跟了十几步”，可铜像脚边的鞋印是新的，鞋尖朝咸亨后门。',press:'“鞋印朝后门。他跟进来了？”',reveal:'阿桂脸白了：“……他进来过。就在打烊后。他问我沈守拙把东西放哪了，我说不知道。他走的时候，从袖子里掉出来一片纸角，我捡起来藏了。”',clue:'咸亨后门的鞋印',gritCost:1}
+      ]},
+    minigame:'zi',
+    zi:{ prompt:'铜像脚边的纸屑上沾着一个残缺的字。你凑近辨认——这是“<strong>沈</strong>”字，但缺了右边。下面三个字中，哪一个是“沈”的右半部分？', choices:['冘','几','尤'], answer:0,
+      winClue:'铜像下的纸屑', winDesc:'你认出纸屑上是“沈”字。这是沈家的姓——沈守拙本姓沈。', loseDesc:'你认错了字。纸屑被风吹走，你只看到“沈”字缺了右边。',
+      tip:'“沈”字右半为“冘”（yín），是“沈”的声旁。' },
+    minigame2:'dialect',
+    dialect:{ prompt:'阿桂压低声音，用绍兴话问了你一句。这一次你有了经验，但还是得听准：', word:'“倷晓得伊到啥地方去伐？”', pron:'nà xiǎo dé yī dào sá dì fāng qì va',
+      choices:['你知道他去哪里了吗？','你知道他什么时候来吗？','你认识这个人吗？'], answer:0,
+      winClue:'绍兴话“倷晓得伊到啥地方去伐”', winDesc:'你听懂了：阿桂在问“你知道他去哪里了吗”。他承认自己一直在替苏见山留门。', loseDesc:'你没听准。阿桂摇了摇头，把话咽了回去。',
+      tip:'绍兴话“倷”=你，“伊”=他，“啥地方”=哪里，“伐”=吗。' },
+    heartChoice:{ prompt:'阿桂说完，忽然压低声音：“你要是查到什么，能不能先告诉我？我不想惹事，但也不想沈守拙白死。”',
+      options:[{text:'告诉他。沈守拙的死不该只有你知道。',heart:1,grit:-1,tag:'偏执念'},{text:'摇头。线索越少人知道越好。',heart:0,grit:0,tag:'偏理性'}] },
+    tokenBonus:'你把酒令签递给阿桂。他犹豫了一下：“……戴斗笠的那个人，往光相桥方向去了。他走得很急。”',
+    tokenBonus2:'你把酒令签拍在柜台上。阿桂盯着看了三秒，忽然说：“后门钥匙，掌柜给过他两把。一把开了门，一把开了酒窖。酒窖里有个铁匣子，我没敢碰。”' },
+
+  { place:'光相桥',
+    desc:'你沿河追到光相桥。桥栏上坐着一位老人，正用绍兴话念民谣：“……福禄、万安、如意……”你走近时，他忽然停住，低声说：“别回头。有人跟了你一路。”',
+    desc2:'第二周目，光相桥。阿福伯没在念民谣，他蹲在桥头，用一根竹枝拨弄桥缝。看见你，他先开口：“你来得正好。昨夜有人从桥下捞走了一个铁盒，我没拦住。”',
+    npc:{ name:'阿福伯', role:'桥头守桥人', face:'🌉',
+      testimony:[
+        {loop:1,text:'“三更天，我看见一个穿长衫的从桥上过，往兰亭去了。他走得急，掉了东西。”'},
+        {loop:2,text:'“你又来了。上一次我说‘扔了个东西’，其实不止。铁盒捞上来的时候，里面除了钥匙，还有半张纸。纸上写着‘苏’字。”'}
+      ],
+      contradictions:[
+        {id:'c1',loop:1,doubt:'阿福伯说“掉了东西”，可桥缝里那角纸片是被人刻意塞进去的。',press:'“掉的东西，怎么会塞进桥缝里？”',reveal:'阿福伯叹气：“……是我塞的。纸角上有一个‘莫’字，还有半个血指印。”',clue:'桥缝纸角与血指印',gritCost:1},
+        {id:'c1b',loop:2,doubt:'【二周目】阿福伯说纸上写着“苏”字，可他又说“没敢细看”。没细看怎知是“苏”不是“沈”？',press:'“没细看，怎知是苏不是沈？”',reveal:'阿福伯沉默了一会儿：“……因为我认得那个字。苏婉卿的苏。沈园墙上那阕词的和词，署的就是苏。”',clue:'铁盒中的“苏”字残纸',gritCost:1}
+      ]},
+    minigame:'shi',
+    shi:{ prompt:'阿福伯念的民谣，下一句是什么？', stem:'“福禄、万安、如意——”', hint:'这三座桥的名字合起来，就是绍兴人给新娘的祝福。',
+      choices:['三桥过门，福禄万安','一桥一愿，岁岁平安','桥桥相望，水水相连'], answer:0,
+      winClue:'三桥祝福', winDesc:'你接上了民谣。阿福伯点点头：“对，三桥过门，福禄万安。那个戴斗笠的，没接上来。他不是绍兴人。”', loseDesc:'你接错了。阿福伯摇摇头：“你不是本地人。不过……那个戴斗笠的，也没接上来。”',
+      tip:'绍兴婚俗中新娘花轿要过福禄、万安、如意三桥，合称“三桥过门，福禄万安”。' },
+    minigame2:'bridge',
+    bridge:{ prompt:'阿福伯用竹枝指了指桥下：“上次你数对了一孔。这次我考你个难的——绍兴有一座古桥，主桥和副桥从三个方向落坡，从高处看像个‘八’字。它叫什么？”',
+      detail:'这座桥始建于南宋，主桥与副桥呈“八”字形，三向落坡，是中国最早的立交桥之一。<strong>提示：它的名字就藏在“三向落坡”里。</strong>',
+      choices:['八字桥','光相桥','广宁桥','题扇桥'], answer:0,
+      winClue:'三向落坡的古桥', winDesc:'你答对了：八字桥。阿福伯点点头：“对。那个戴斗笠的，上次也答错了。他说是光相桥——他连绍兴的桥都没认全。”', loseDesc:'你答错了。阿福伯摇摇头：“八字桥。三向落坡，从高处看像个‘八’字。”',
+      tip:'八字桥始建于南宋，主桥与副桥呈“八”字形，三向落坡。' },
+    heartChoice:{ prompt:'阿福伯把竹枝放下，看着你说：“那个铁盒，我本来可以不上报的。你要我装作没看见吗？”',
+      options:[{text:'“装作没看见。铁盒的事，我来查。”',heart:1,grit:-1,tag:'偏执念'},{text:'“上报吧。有些事不该瞒。”',heart:0,grit:0,tag:'偏理性'}] },
+    tokenBonus:'你把酒令签投进桥下流水。阿福伯看着水面：“昨夜那个戴斗笠的，斗笠下面露出半截辫子——是条假辫子。他是个剃了头的人。”',
+    tokenBonus2:'你把酒令签塞进阿福伯手里。他攥了攥，说：“捞铁盒的人，手上有道旧疤。他捞上来之后，往兰亭方向去了。走之前，他回头看了一眼沈园。”' },
+
+  { place:'兰亭',
+    desc:'你赶到兰亭时，天已经黑了。曲水流觞处静得反常。你绕过碑亭，忽然停住——沈守拙倒在《兰亭集序》摹本碑前，胸口插着一把刮刀，血已经浸透了青砖。他手里还攥着半卷词笺。',
+    desc2:'第二周目，兰亭。沈守拙的尸身已经被移走，地上只剩下粉笔画出的人形和一小摊洗不净的暗红。碑亭里多了一盏没点的灯——有人在你之前来过。沈守拙左手划字的地方，被人用脚擦过，但没擦干净。',
+    npc:{ name:'沈守拙（遗物）', role:'兰亭守亭人 · 已故', face:'🖌️',
+      testimony:[
+        {loop:1,text:'（沈守拙已经说不出话了。）他右手攥着半卷词笺，左手在地上划了两个字——“别、刮”。'},
+        {loop:2,text:'（二周目，你看得更细。）粉笔人形的手边，有一小片没擦净的墨迹。“别刮”的“刮”字旁边，还有半个没写完的“苏”。'}
+      ],
+      contradictions:[
+        {id:'c2',loop:1,doubt:'沈守拙攥着半卷词笺，可那词笺的纸色比沈园墙上的旧笺新得多——这是赝品。',press:'“这卷词笺的纸色太新。沈守拙为什么攥着一卷假词笺？”',reveal:'你翻过词笺背面，发现一行小字：“真迹已移，勿寻。掌柜。”沈守拙不是取笺的人，他是在替人藏真迹。',clue:'赝品词笺与“掌柜”字样',gritCost:1},
+        {id:'c2b',loop:2,doubt:'【二周目】地上被擦过的字是“苏”，不是“斗笠人”。沈守拙临死前改了口，为什么？',press:'“他为什么把‘斗笠人’擦掉，改成‘苏’？”',reveal:'你蹲下去，发现“苏”字旁边还有半个没写完的字——“婉”。沈守拙不是要指认凶手，他是在指认那阕词的作者。',clue:'未写完的“苏婉”',gritCost:1}
+      ]},
+    minigame:'pin',
+    pin:{ prompt:'沈守拙手边散落着几块残碑拓片，字被打乱了。请按正确顺序拼出《兰亭集序》开篇名句：',
+      sentence:['永','和','九','年','岁','在','癸','丑'], hint:'这是《兰亭集序》的第一句，交代了雅集的时间。',
+      winClue:'兰亭拓片', winDesc:'你拼出了“永和九年，岁在癸丑”。沈守拙左手最后那个字，正是“丑”——他在指时间，不是指人。', loseDesc:'你拼错了顺序。拓片散落一地，沈守拙的遗言也成了谜。',
+      tip:'《兰亭集序》开篇：“永和九年，岁在癸丑。”' },
+    minigame2:'couplet',
+    couplet:{ prompt:'碑亭的柱子上新刻了一副对联，上联是“文章千古事”。沈守拙的遗物里有一张纸条，写着下联的三个备选。请选出正确的一句：',
+      stem:'文章千古事', hint:'这副对联常题于书斋、碑亭，下联讲的是“得失”与“寸心”。',
+      choices:['得失寸心知','风雨十年灯','笔墨一生情','金石百年心'], answer:0,
+      winClue:'碑亭对联', winDesc:'你选对了：“文章千古事，得失寸心知。”沈守拙的纸条背面写着：“词笺之事，得失寸心。”', loseDesc:'你选错了。对联缺一半，沈守拙的心事也缺一半。',
+      tip:'“文章千古事，得失寸心知”出自杜甫《偶题》。' },
+    heartChoice:{ prompt:'粉笔人形的手边，那张写着“苏”字的纸角被风吹得翻了个面。你伸手，可以把它收进袖子里，也可以留在原地。',
+      options:[{text:'收进袖子。这个秘密不该留在这里。',heart:1,grit:0,tag:'偏执念'},{text:'留在原地。该看见的人会看见。',heart:0,grit:0,tag:'偏理性'}] },
+    tokenBonus:'你以酒令签换了一盏温酒，守亭的老仆低声说：“昨夜掌柜来过。他和沈守拙吵了一架。掌柜走时，沈守拙还活着。”',
+    tokenBonus2:'你把酒令签放在粉笔人形的手边。守亭的老仆忽然开口：“昨夜不止掌柜来过。苏见山也来了。他比掌柜晚走一步。沈守拙死的时候，手里攥着的不是词笺——是半张写着‘苏’字的纸。”' },
+
+  { place:'咸亨酒店',
+    desc:'你回到咸亨酒店，掌柜不在。柜台后坐着苏见山，正慢慢喝着加饭酒。他抬起头，斗笠下是三天前托你寻词笺的“越州旧书商”。他笑了笑：“你来得比我预想的快。”',
+    desc2:'第二周目，咸亨酒店。苏见山还坐在老位置，但桌上多了两只碗。他给你倒了一碗加饭酒，推过来：“上次你赢了我，这次我不让了。喝完这碗，我告诉你一件你上次没问出来的事。”',
+    npc:{ name:'苏见山', role:'自称“越州旧书商”', face:'🎭',
+      testimony:[
+        {loop:1,text:'“词笺是我让你找的。但沈守拙不是我杀的。我到他那儿的时候，他已经快不行了。”'},
+        {loop:2,text:'“你又来了。上一次我没说全——我拔刀的时候，沈守拙还有一口气。他说了一句话，我没听清。后来我想了一夜，才想明白他说的是‘苏’。”'}
+      ],
+      contradictions:[
+        {id:'c3',loop:1,doubt:'苏见山说“沈守拙不是我杀的”，可他知道沈守拙胸口插着刮刀——这件事你没对外说过。',press:'“你怎么知道沈守拙胸口插着刮刀？”',reveal:'苏见山沉默了一瞬：“……因为我拔出来看过。我想救他。但拔出来之后，血涌得更快。我慌了，又把刀插了回去。”他伸出手，手上有血，还有一道旧疤。',clue:'苏见山的血手',gritCost:1},
+        {id:'c3b',loop:2,doubt:'【二周目】苏见山说沈守拙临死说的是“苏”，可他自己又说“没听清”。没听清，怎么想一夜就想明白了？',press:'“没听清，怎么想一夜就想明白了？”',reveal:'苏见山把酒碗放下：“因为我也想了一夜。‘苏’字后面，还有一个字，我没敢往那儿想。苏婉卿。那阕词是苏婉卿写的。”',clue:'沈守拙的临终托付',gritCost:1}
+      ]},
+    minigame:'wuxing',
+    wuxing:{ intro:'生死局 · 五行生克令。苏见山把酒碗一推：“赌一局。你赢了，我把知道的都告诉你；你输了，把词笺留下，人走。”三局两胜。输一局，你的线索会被他拿走一条。',
+      winClue:'苏见山的供词', winDesc:'你连赢两局。苏见山放下酒碗：“掌柜的袖子里有刮刀。沈守拙死前，掌柜去过兰亭。真词笺在我手里，但杀人的不是我。”', loseDesc:'苏见山赢了。他笑着从你手里抽走一条线索：“这条，我替你保管。”' },
+    minigame2:'qp',
+    qp:{ intro:'酒令猜拳 · 第二局。苏见山把两只酒碗并排放好：“上次五行令你赢了我。这次换个玩法，石头剪刀布，三局两胜。输一局，留一条线索。”',
+      winClue:'猜拳赢来的口风', winDesc:'你连赢两局。苏见山放下手：“掌柜的袖子里有刮刀。沈守拙死前，掌柜去过兰亭。还有一件事——铁盒里的钥匙，是掌柜给的。”', loseDesc:'苏见山赢了。他笑着从你手里抽走一条线索：“这条，我替你保管。”' },
+    heartChoice:{ prompt:'苏见山把空酒碗推到你面前：“你查到这里，已经知道不少了。我要去沈园刮墙。你拦不拦我？”',
+      options:[{text:'“你走吧。但刮不刮，我来定。”',heart:1,grit:-1,tag:'偏执念'},{text:'“你走吧。我拦不住你。”',heart:0,grit:0,tag:'偏理性'}] },
+    tokenBonus:'你把酒令签递给阿桂。他犹豫了一下：“……戴斗笠的那个人，往光相桥方向去了。他走得很急。”',
+    tokenBonus2:'你把酒令签推到苏见山面前。他看了一眼，从袖中取出一片纸角：“这是我从铁盒里拿的。上面只有一个字——‘婉’。你拿去，比留在我手里有用。”' },
+
+  { place:'沈园',
+    desc:'沈园的夜，灯笼在风里晃。粉墙上那阕《钗头令》的刻痕被摸得发亮。咸亨掌柜站在词壁前，背对着你。',
+    desc2:'第二周目，白天的沈园。天光落在词壁上，灰已经抹平了。掌柜站在词壁前，背对着你。',
+    minigame:'shen' }
+];
+
+/* ============================================================
+   沈园数据
+   ============================================================ */
+const shenData = {
+  objects1: [
+    { id:'wall', label:'词壁', icon:'🪨', pos:{left:'50%',top:'50%'}, clue:'两层字', desc:'字迹被摸得发亮，下面好像还有一层。', unlock:null, isNpc:false },
+    { id:'chengzhu', label:'掌柜', icon:'🧥', pos:{left:'82%',top:'50%'}, unlock:null, isNpc:true },
+    { id:'lantern', label:'灯笼', icon:'🏮', pos:{left:'10%',top:'12%'}, clue:'灯油是新的', desc:'灯油是新的，有人今夜刚添过。', unlock:null, isNpc:false },
+    { id:'moonGate', label:'月门', icon:'🚪', pos:{left:'88%',top:'12%'}, clue:'月门下的鞋印', desc:'月门下有半枚鞋印，鞋尖朝词壁。', unlock:null, isNpc:false },
+    { id:'ash', label:'灰堆', icon:'⬛', pos:{left:'10%',top:'82%'}, clue:'新抹的灰', desc:'灰是新抹的，还没干透。', unlock:'wall', isNpc:false },
+    { id:'ashen', label:'阿沈', icon:'👤', pos:{left:'72%',top:'82%'}, unlock:'ash', isNpc:true },
+    { id:'lamp', label:'没点的灯', icon:'💡', pos:{left:'90%',top:'82%'}, clue:'没点的灯', desc:'灯没点。他站在词壁前，像在等谁。', unlock:'ashen', isNpc:false },
+    { id:'knife', label:'刮刀', icon:'🔪', pos:{left:'50%',top:'75%'}, clue:'刮刀上的灰', desc:'刮刀上沾着新灰，是抹灰时蹭上的。', unlock:'wall+掌柜的按手', isNpc:false }
+  ],
+  objects2: [
+    { id:'wall', label:'词壁', icon:'🪨', pos:{left:'50%',top:'50%'}, clue:'两层字', desc:'字迹被摸得发亮，灰已抹平，但右下角有个字没擦净。', unlock:null, isNpc:false },
+    { id:'chengzhu', label:'掌柜', icon:'🧥', pos:{left:'82%',top:'50%'}, unlock:null, isNpc:true },
+    { id:'su', label:'没擦净的苏字', icon:'✍️', pos:{left:'62%',top:'65%'}, clue:'没擦净的苏字', desc:'词壁右下角，一个“苏”字没擦净。', unlock:'wall+铁盒中的“苏”字残纸', isNpc:false },
+    { id:'ash', label:'灰堆', icon:'⬛', pos:{left:'10%',top:'82%'}, clue:'新抹的灰', desc:'灰是新抹的，还没干透。', unlock:'wall', isNpc:false },
+    { id:'ashen', label:'阿沈', icon:'👤', pos:{left:'72%',top:'82%'}, unlock:'ash', isNpc:true },
+    { id:'key', label:'阿沈手里的钥匙', icon:'🔑', pos:{left:'78%',top:'72%'}, clue:'沈园后门的钥匙', desc:'阿沈手里攥着一把钥匙，是沈园后门的。', unlock:'ashen', isNpc:false },
+    { id:'sleeve', label:'掌柜袖口的灰', icon:'👘', pos:{left:'92%',top:'42%'}, clue:'掌柜按手时沾了灰', desc:'掌柜袖口沾着新灰，是抹灰时蹭上的。', unlock:'掌柜的按手', isNpc:false }
+  ],
+  npcs: {
+    chengzhu: {
+      name:'咸亨掌柜', face:'🧥',
+      topics1: [
+        { id:'t1', text:'“墙上的灰，是你抹的？”', attitude:-1, clue:null, need:null,
+          reply:'“……你比我想的细。是，灰是我抹的。但人不是我杀的。”' },
+        { id:'t2', text:'“沈守拙死的时候，你在哪？”', attitude:-1, clue:'苏见山的血手', need:null,
+          reply:'“我在兰亭。沈守拙到的时候，我已经在了。我们吵了一架，没吵出结果。后来苏见山来了，他拔了刀——我按住沈守拙的手时，苏见山的手上全是血。”' },
+        { id:'t3', text:'“这面墙，你守了多久？”', attitude:1, clue:'掌柜与沈守拙的旧交', need:null,
+          reply:'“守墙的不是我，是沈守拙。我守的是他。他守了八百年，我守了他二十年。”' },
+        { id:'t4', text:'“沈守拙让你抹灰的时候，说了什么？”', attitude:0, clue:'沈守拙的遗言', need:'t3',
+          reply:'“他说：‘别刮。让她一直没署名。’我按着他的手，把灰抹了回去。”' },
+        { id:'t5', text:'“苏见山来的时候，你在场吗？”', attitude:0, clue:'掌柜的按手', need:'t4',
+          reply:'“苏见山拔了刀。我按了沈守拙的手。他让我们两个都别声张。他说：‘别让苏见山背这个名。’”' }
+      ],
+      topics2: [
+        { id:'t1', text:'“墙上的灰，是你抹的？”', attitude:-1, clue:null, need:null,
+          reply:'“……你比我想的细。是，灰是我抹的。但人不是我杀的。”' },
+        { id:'t2', text:'“沈守拙死的时候，你在哪？”', attitude:-1, clue:'苏见山的血手', need:null,
+          reply:'“我在兰亭。沈守拙到的时候，我已经在了。我们吵了一架，没吵出结果。后来苏见山来了，他拔了刀——我按住沈守拙的手时，苏见山的手上全是血。”' },
+        { id:'t3', text:'“这面墙，你守了多久？”', attitude:1, clue:'掌柜与沈守拙的旧交', need:null,
+          reply:'“守墙的不是我，是沈守拙。我守的是他。”' },
+        { id:'t4', text:'“沈守拙让你抹灰的时候，说了什么？”', attitude:0, clue:'沈守拙的遗言', need:'t3',
+          reply:'“他说：‘别刮。让她一直没署名。’”' },
+        { id:'t5', text:'“苏见山来的时候，你在场吗？”', attitude:0, clue:'掌柜的按手', need:'t4',
+          reply:'“苏见山拔了刀。我按了沈守拙的手。他让我们两个都别声张。”' },
+        { id:'t6', text:'“苏婉卿是谁？”', attitude:0, clue:'苏婉卿的和词', need:'没擦净的苏字',
+          reply:'“……你查到这一步了。苏婉卿是沈砚之的妻子。墙下面那半阕，是她写的。沈守拙守的，就是这个。”' }
+      ]
+    },
+    ashen: {
+      name:'沈园守夜人 阿沈', face:'👤',
+      topics1: [
+        { id:'a1', text:'“你在等谁？”', attitude:-1, clue:null, need:null,
+          reply:'“等一个不会来的人。”' },
+        { id:'a2', text:'“这盏灯，为什么没点？”', attitude:1, clue:'没点的灯', need:null,
+          reply:'“点了，他就知道我在等了。我不想让他知道。”' },
+        { id:'a3', text:'“沈守拙昨夜会来？”', attitude:0, clue:'阿沈的等待', need:'a2',
+          reply:'“沈守拙答应来把词笺放回去。他没来。”' },
+        { id:'a4', text:'“苏见山去兰亭，你知道吗？”', attitude:-1, clue:'阿沈没拦', need:'苏见山的血手',
+          reply:'“……知道。我没拦。我想让他刮，但我不敢自己刮。”' }
+      ],
+      topics2: [
+        { id:'a1', text:'“你在等谁？”', attitude:-1, clue:null, need:null,
+          reply:'“等一个不会来的人。”' },
+        { id:'a2', text:'“这盏灯，为什么没点？”', attitude:1, clue:'没点的灯', need:null,
+          reply:'“点了，他就知道我在等了。我不想让他知道。”' },
+        { id:'a3', text:'“沈守拙昨夜会来？”', attitude:0, clue:'阿沈的等待', need:'a2',
+          reply:'“沈守拙答应来把词笺放回去。他没来。”' },
+        { id:'a4', text:'“苏见山去兰亭，你知道吗？”', attitude:-1, clue:'阿沈没拦', need:'苏见山的血手',
+          reply:'“……知道。我没拦。”' },
+        { id:'a5', text:'“你祖上，是盖灰的人？”', attitude:0, clue:'沈家旁支的灰', need:'a4',
+          reply:'“……是。我守了一辈子，守的是祖上盖过的东西。”' }
+      ]
+    }
+  },
+  deduceSlots: [
+    { id:'xu', time:'戌时', hint:'谁先到兰亭', correct:'掌柜与沈守拙的旧交' },
+    { id:'hai', time:'亥时', hint:'谁动了刀', correct:'苏见山的血手' },
+    { id:'zi', time:'子时', hint:'谁抹了灰', correct:'掌柜的按手' },
+    { id:'chou', time:'丑时', hint:'谁在沈园等', correct:'阿沈的等待' }
+  ]
+};
+
+/* ============================================================
+   元素引用 & 工具
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const main = $('main'), sceneBox = $('sceneBox'), panel = $('panel');
+const feedbackEl = $('feedback');
+const actionsEl = $('actions'), clueBar = $('clueBar');
+const endScreen = $('endScreen'), overlayInner = $('overlayInner');
+const topbar = $('topbar'), route = $('route');
+const shenScene = $('shenScene'), sceneCanvas = $('sceneCanvas');
+const deduceArea = $('deduceArea'), ddSlots = $('ddSlots'), ddClueList = $('ddClueList');
+const cluePopup = $('cluePopup'), attitudeFloat = $('attitudeFloat');
+const topicPanel = $('topicPanel'), tpTopics = $('tpTopics'), tpTopicActions = $('tpTopicActions');
+
+function bumpStat(el) { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 250); }
+function updateStats() {
+  const t = $('tokenCount'), c = $('clueCount'), g = $('gritVal'), h = $('heartVal');
+  if (t.textContent !== String(state.tokens)) { t.textContent = state.tokens; bumpStat(t); }
+  if (c.textContent !== String(state.clues)) { c.textContent = state.clues; bumpStat(c); }
+  if (g.textContent !== String(state.grit)) { g.textContent = state.grit; bumpStat(g); }
+  if (h.textContent !== String(state.heart)) { h.textContent = state.heart; bumpStat(h); }
+  $('loopBadge').textContent = state.loop === 1 ? '一 周 目' : '二 周 目';
+  clueBar.style.display = state.clues > 0 ? 'block' : 'none';
+  if (state.clues > 0) clueBar.innerHTML = '<strong>已获线索：</strong>' + state.collectedClues.join(' · ');
+}
+function updateRoute() {
+  document.querySelectorAll('#route .node').forEach((el, i) => {
+    el.className = 'node' + (i < state.scene ? ' done' : i === state.scene ? ' active' : '');
+  });
+}
+function showNextButton(label, fn) {
+  actionsEl.innerHTML = '';
+  showBackButton();
+  const btn = document.createElement('button');
+  btn.className = 'btn'; btn.textContent = label;
+  btn.onclick = () => { AudioEngine.tap(); (fn || advance)(); };
+  actionsEl.appendChild(btn);
+}
+function showAskButton() {
+  const btn = document.createElement('button');
+  btn.className = 'btn ghost'; btn.textContent = '问 ' + scenes[state.scene].npc.name;
+  btn.onclick = () => { AudioEngine.tap(); openNpcDialog(state.scene); };
+  actionsEl.appendChild(btn);
+}
+function showBackButton() {
+  if (state.scene <= 0) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn ghost'; btn.textContent = '← 上一景';
+  btn.style.marginRight = 'auto';
+  btn.onclick = () => { AudioEngine.tap(); goBack(); };
+  actionsEl.appendChild(btn);
+}
+function addClue(name) {
+  if (!name || state.collectedClues.includes(name)) return;
+  state.clues++; state.collectedClues.push(name);
+  updateStats();
+  AudioEngine.clueGain();
+}
+function flashFeedback() {
+  feedbackEl.classList.add('flash');
+  setTimeout(() => feedbackEl.classList.remove('flash'), 700);
+}
+function showCluePopup(tag, title, desc) {
+  $('cpTag').textContent = tag;
+  $('cpTitle').textContent = title;
+  $('cpDesc').textContent = desc || '';
+  cluePopup.classList.add('show');
+  clearTimeout(showCluePopup._t);
+  showCluePopup._t = setTimeout(() => cluePopup.classList.remove('show'), 2200);
+}
+function showAttitude(text) {
+  attitudeFloat.textContent = text;
+  attitudeFloat.classList.add('show');
+  clearTimeout(showAttitude._t);
+  showAttitude._t = setTimeout(() => attitudeFloat.classList.remove('show'), 1500);
+}
+function goBack() {
+  if (state.scene <= 0) return;
+  state.scene--; state.phase = 'challenge';
+  renderScene();
+}
+
+/* ============================================================
+   心证抉择
+   ============================================================ */
+function renderHeartChoice(s, onDone) {
+  const hc = s.heartChoice;
+  if (!hc) { onDone(); return; }
+  actionsEl.innerHTML = '';
+  panel.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="card-title">心 证 抉 择<span class="tag">有些选择不写在纸上</span></div>`;
+  const box = document.createElement('div');
+  box.className = 'heart-choice-box';
+  box.textContent = hc.prompt;
+  card.appendChild(box);
+  hc.options.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt heart-choice';
+    b.textContent = `${String.fromCharCode(65+i)}. ${opt.text}`;
+    b.onclick = () => {
+      AudioEngine.heart();
+      if (opt.heart) state.heart += opt.heart;
+      if (opt.grit) state.grit += opt.grit;
+      updateStats();
+      card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+      b.classList.add('correct');
+      feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 心证 ${opt.heart > 0 ? '+1' : '未增'}。</span> ${opt.tag === '偏执念' ? '你选择了让执念多走一步。' : '你选择了让理性多站一会儿。'}`;
+      flashFeedback();
+      showNextButton('继续前行 →', () => { onDone(); });
+    };
+    card.appendChild(b);
+  });
+  panel.appendChild(card);
+  main.scrollTop = 0;
+}
+
+/* ============================================================
+   场景渲染
+   ============================================================ */
+function renderScene() {
+  const s = scenes[state.scene];
+  if (!s) { renderEnding(); return; }
+  updateRoute(); updateStats();
+
+  panel.innerHTML = '';
+  overlayInner.classList.remove('show');
+  overlayInner.style.display = 'none';
+  endScreen.classList.remove('show');
+  endScreen.style.display = 'none';
+  feedbackEl.style.display = 'block';
+  feedbackEl.textContent = '';
+  actionsEl.style.display = 'flex';
+  actionsEl.innerHTML = '';
+  clueBar.style.display = state.clues > 0 ? 'block' : 'none';
+  shenScene.classList.remove('show');
+  deduceArea.style.display = 'none';
+  sceneBox.style.display = 'block';
+  topicPanel.classList.remove('show');
+  main.style.overflowY = 'auto';
+
+  showBackButton();
+
+  if (s.minigame === 'shen') {
+    sceneBox.style.display = 'none';
+    renderShenScene();
+    return;
+  }
+
+  const desc = (state.loop === 2 && s.desc2) ? s.desc2 : s.desc;
+  sceneBox.innerHTML = `<span class="place">${s.place}</span><div class="desc-text">${desc}</div>`;
+  sceneBox.classList.remove('enter'); void sceneBox.offsetWidth; sceneBox.classList.add('enter');
+
+  const mg = (state.loop === 2 && s.minigame2) ? s.minigame2 : s.minigame;
+  if (mg === 'wuxing') { state.phase = 'wuxing'; renderWuxingScene(); return; }
+  if (mg === 'qp') { state.phase = 'qp'; renderQpScene(); return; }
+
+  state.phase = 'challenge';
+  showAskButton();
+  addTokenCard(sceneBox.parentNode, sceneBox.nextSibling);
+
+  if (mg === 'zi') renderZi(s);
+  else if (mg === 'shi') renderShi(s);
+  else if (mg === 'pin') renderPin(s);
+  else if (mg === 'dialect') renderDialect(s);
+  else if (mg === 'bridge') renderBridge(s);
+  else if (mg === 'couplet') renderCouplet(s);
+  main.scrollTop = 0;
+}
+
+function addTokenCard(parent, before) {
+  clearTokenCard();
+  if (state.tokens <= 0 || state.usedTokens.includes(state.scene)) return;
+  const card = document.createElement('div');
+  card.className = 'card'; card.id = 'tmpTokenCard'; card.style.padding = '10px 14px';
+  const tk = document.createElement('div');
+  tk.className = 'token'; tk.textContent = '酒令签 ×1 · 换额外情报';
+  tk.onclick = () => { AudioEngine.tap(); useToken(state.scene); };
+  card.appendChild(tk);
+  parent.insertBefore(card, before);
+}
+function clearTokenCard() {
+  const old = document.getElementById('tmpTokenCard');
+  if (old) old.remove();
+}
+function useToken(i) {
+  if (state.tokens <= 0 || state.usedTokens.includes(i)) return;
+  const s = scenes[i]; if (!s) return;
+  state.tokens--; state.usedTokens.push(i);
+  let bonus = state.loop === 2 ? (s.tokenBonus2 || s.tokenBonus) : s.tokenBonus;
+  if (!bonus) bonus = '酒令签已用，但这一处没有额外的情报。';
+  feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 酒令签已用。</span> ${bonus}`;
+  flashFeedback();
+  clearTokenCard();
+  updateStats();
+}
+
+/* ============================================================
+   沈园
+   ============================================================ */
+function renderShenScene() {
+  if (!state.shen) state.shen = initShen();
+  deduceArea.style.display = 'none';
+  clearTokenCard();
+  const isLoop2 = state.loop === 2;
+  shenScene.classList.add('show');
+  sceneCanvas.className = 'scene-canvas ' + (isLoop2 ? 'day' : 'night');
+  sceneCanvas.innerHTML = '';
+
+  const deco1 = document.createElement('div');
+  deco1.className = 'scene-deco'; deco1.style.left = '5%'; deco1.style.top = '5%';
+  deco1.textContent = isLoop2 ? '☀️' : '🏮';
+  sceneCanvas.appendChild(deco1);
+  const deco2 = document.createElement('div');
+  deco2.className = 'scene-deco'; deco2.style.right = '5%'; deco2.style.top = '5%';
+  deco2.textContent = '🚪';
+  sceneCanvas.appendChild(deco2);
+
+  const wall = document.createElement('div');
+  wall.className = 'scene-wall';
+  wall.innerHTML = `<div class="wall-text">钗 头 令</div>`;
+  sceneCanvas.appendChild(wall);
+
+  const objList = isLoop2 ? shenData.objects2 : shenData.objects1;
+  objList.forEach(obj => {
+    if (!isObjUnlocked(obj)) return;
+    const el = document.createElement('div');
+    el.className = 'obj' + (obj.isNpc ? ' npc' : '');
+    if (state.shen.npcGone && obj.isNpc) el.classList.add('gone');
+    el.dataset.id = obj.id;
+    el.style.left = obj.pos.left; el.style.top = obj.pos.top;
+    el.textContent = obj.icon;
+    const label = document.createElement('div');
+    label.className = 'label'; label.textContent = obj.label;
+    el.appendChild(label);
+    el.onclick = () => handleObjClick(obj, el);
+    sceneCanvas.appendChild(el);
+  });
+
+  panel.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="card-title">${isLoop2 ? '沈 园 · 白 日' : '沈 园 · 夜 探'}<span class="tag">点击画面里的物件</span></div>`;
+  card.innerHTML += `<div style="font-size:clamp(12px,3.2vw,14px);color:#5a3a1a;line-height:1.8;">${isLoop2 ? '灰已抹平，还有没擦净的字。' : '点画面里的物件，看看能发现什么。有些东西藏得深，得先找到别的才看得见。'}</div>`;
+  panel.appendChild(card);
+
+  showNextButton('进入推演 →', () => enterDeduce());
+
+  if (!state.shen._tipShown) {
+    state.shen._tipShown = true;
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 沈园的夜。</span> 点画面里的物件，看看能发现什么。`;
+    flashFeedback();
+  }
+  updateStats();
+  main.scrollTop = 0;
+}
+
+function isObjUnlocked(obj) {
+  if (!obj.unlock) return true;
+  return obj.unlock.split('+').every(u => state.shen.discovered.includes(u) || state.collectedClues.includes(u));
+}
+
+function handleObjClick(obj, el) {
+  if (state.shen.npcGone && obj.isNpc) {
+    AudioEngine.objLocked();
+    el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 400);
+    feedbackEl.innerHTML = `<span style="color:#8b7355;">${obj.label}已经走了。</span> 你回探索得太晚，他们不等了。`;
+    flashFeedback(); return;
+  }
+  if (state.shen.discovered.includes(obj.id)) {
+    AudioEngine.objLocked();
+    el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 400);
+    feedbackEl.innerHTML = `<span style="color:#8b7355;">${obj.label}，你已经看过了。</span>`;
+    flashFeedback(); return;
+  }
+  AudioEngine.objTap();
+  el.classList.add('glow'); setTimeout(() => el.classList.remove('glow'), 700);
+  if (obj.isNpc) { openTopicPanel(obj.id); return; }
+  state.shen.discovered.push(obj.id);
+  if (obj.clue) {
+    addClue(obj.clue);
+    showCluePopup('新线索', obj.clue, obj.desc);
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 发现「${obj.clue}」</span> ${obj.desc}`;
+    flashFeedback();
+  }
+  setTimeout(() => { if (shenScene.classList.contains('show')) renderShenScene(); }, 300);
+}
+
+/* ============================================================
+   NPC 对话
+   ============================================================ */
+function getNpcData(npcId) {
+  const base = shenData.npcs[npcId];
+  return { ...base, topics: state.loop === 2 ? base.topics2 : base.topics1 };
+}
+
+function updateTpHead(npc) {
+  const att = state.shen.attitudes[state.shen.currentNpc] || 0;
+  const attText = att >= 2 ? '信任' : att >= 1 ? '放松' : att <= -2 ? '防备' : att <= -1 ? '冷淡' : '平常';
+  const attStr = `态度：${attText}（${att >= 0 ? '+' : ''}${att}）`;
+  ['tpFace','tpFace2','tpFace3'].forEach(id => { const el = $(id); if (el) el.textContent = npc.face; });
+  ['tpName','tpName2','tpName3'].forEach(id => { const el = $(id); if (el) el.textContent = npc.name; });
+  ['tpAtt','tpAtt2'].forEach(id => { const el = $(id); if (el) el.textContent = attStr; });
+}
+
+function openTopicPanel(npcId) {
+  const npc = getNpcData(npcId);
+  if (!npc) return;
+  state.shen.currentNpc = npcId;
+  if (!state.shen.dialogHistory[npcId]) state.shen.dialogHistory[npcId] = [];
+  updateTpHead(npc);
+  renderTopicsPage(npcId);
+  renderHistoryPage(npcId);
+  if (state.shen.dialogHistory[npcId].length > 0) showTopicPage('history');
+  else showTopicPage('topics');
+  topicPanel.classList.add('show');
+}
+
+function showTopicPage(which) {
+  ['tpPageReply','tpPageTopics','tpPageHistory'].forEach(id => $(id).classList.remove('show'));
+  if (which === 'reply') $('tpPageReply').classList.add('show');
+  else if (which === 'topics') $('tpPageTopics').classList.add('show');
+  else if (which === 'history') $('tpPageHistory').classList.add('show');
+}
+
+function renderReplyArea(npcId) {
+  const area = $('tpReplyArea');
+  const hist = state.shen.dialogHistory[npcId] || [];
+  area.innerHTML = '';
+  if (hist.length === 0) {
+    const card = document.createElement('div');
+    card.className = 'tp-reply-card';
+    card.innerHTML = `<div class="who-tag">${getNpcData(npcId).name}</div><div class="reply-text">“你问吧。”</div>`;
+    area.appendChild(card);
+    return;
+  }
+  let last = null;
+  for (let i = hist.length - 1; i >= 0; i--) {
+    if (hist[i].who !== '你' && !hist[i].clue) { last = hist[i]; break; }
+  }
+  if (!last) last = hist[hist.length - 1];
+  const card = document.createElement('div');
+  card.className = 'tp-reply-card' + (last.clue ? ' clue' : '');
+  card.innerHTML = `<div class="who-tag">${last.who}</div><div class="reply-text">${last.text}</div>`;
+  area.appendChild(card);
+}
+
+function renderTopicsPage(npcId) {
+  const npc = getNpcData(npcId);
+  tpTopics.innerHTML = '';
+  const asked = state.shen.askedTopics[npcId] || [];
+  npc.topics.forEach(t => {
+    if (t.need && !asked.includes(t.need) && !state.collectedClues.includes(t.need)) return;
+    const b = document.createElement('button');
+    b.className = 'topic-btn' + (asked.includes(t.id) ? ' asked' : '');
+    b.textContent = t.text;
+    b.disabled = asked.includes(t.id);
+    b.onclick = () => askTopic(npcId, t);
+    tpTopics.appendChild(b);
+  });
+  if (tpTopics.children.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:clamp(12px,3.2vw,14px);color:#8b7355;padding:8px 0;text-align:center;';
+    empty.textContent = '他好像没什么想说的。';
+    tpTopics.appendChild(empty);
+  }
+  tpTopicActions.innerHTML = '';
+  if (state.tokens > 0) {
+    const tBtn = document.createElement('button');
+    tBtn.className = 'btn ghost'; tBtn.textContent = `递酒令签（+1，剩${state.tokens}）`;
+    tBtn.onclick = () => {
+      state.tokens--;
+      state.shen.attitudes[npcId] = Math.min(2, (state.shen.attitudes[npcId] || 0) + 1);
+      updateStats();
+      showAttitude(`${npc.name} 态度 +1`);
+      state.shen.dialogHistory[npcId].push({ who: '你', text: '（递了一枚酒令签）' });
+      state.shen.dialogHistory[npcId].push({ who: npc.name, text: '（他收下了，脸色缓和了一些）' });
+      updateTpHead(npc);
+      renderHistoryPage(npcId);
+      renderTopicsPage(npcId);
+      feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 递了酒令签。</span>`;
+      flashFeedback();
+    };
+    tpTopicActions.appendChild(tBtn);
+  }
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn'; closeBtn.textContent = '先走一步';
+  closeBtn.onclick = () => closeTopicPanel();
+  tpTopicActions.appendChild(closeBtn);
+}
+
+function renderHistoryPage(npcId) {
+  const hist = state.shen.dialogHistory[npcId] || [];
+  const list = $('tpHistoryList');
+  list.innerHTML = '';
+  if (hist.length === 0) {
+    list.innerHTML = `<div style="text-align:center;color:#8b7355;font-size:clamp(12px,3.2vw,14px);padding:16px 0;">还没有对话。</div>`;
+    return;
+  }
+  hist.forEach(h => {
+    const item = document.createElement('div');
+    item.className = 'tp-history-item' + (h.who === '你' ? ' me' : '');
+    item.innerHTML = `<div class="h-who">${h.who}</div>${h.text}`;
+    list.appendChild(item);
+  });
+}
+
+function askTopic(npcId, topic) {
+  AudioEngine.tap();
+  const npc = getNpcData(npcId);
+  const asked = state.shen.askedTopics[npcId] || [];
+  if (asked.includes(topic.id)) return;
+  state.shen.askedTopics[npcId] = [...asked, topic.id];
+
+  const oldAtt = state.shen.attitudes[npcId] || 0;
+  state.shen.attitudes[npcId] = Math.max(-2, Math.min(2, oldAtt + topic.attitude));
+  if (topic.attitude !== 0) showAttitude(`${npc.name} 态度 ${topic.attitude > 0 ? '+' : ''}${topic.attitude}`);
+
+  const hist = state.shen.dialogHistory[npcId];
+  hist.push({ who: '你', text: topic.text.replace(/^“|”$/g, '') });
+  hist.push({ who: npc.name, text: topic.reply });
+
+  if (topic.clue) {
+    addClue(topic.clue);
+    hist.push({ who: npc.name, text: `（你记下了：「${topic.clue}」）`, clue: true });
+    showCluePopup('新线索', topic.clue, '');
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 获得「${topic.clue}」</span>`;
+    flashFeedback();
+  }
+
+  updateTpHead(npc);
+  renderReplyArea(npcId);
+  renderTopicsPage(npcId);
+  renderHistoryPage(npcId);
+  showTopicPage('reply');
+
+  const area = $('tpReplyArea');
+  const acts = document.createElement('div');
+  acts.style.cssText = 'display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:flex-end;';
+  const backBtn = document.createElement('button');
+  backBtn.className = 'btn'; backBtn.textContent = '继续问 →';
+  backBtn.onclick = () => showTopicPage('topics');
+  acts.appendChild(backBtn);
+  const histBtn = document.createElement('button');
+  histBtn.className = 'btn ghost'; histBtn.textContent = '看对话记录';
+  histBtn.onclick = () => showTopicPage('history');
+  acts.appendChild(histBtn);
+  area.appendChild(acts);
+}
+
+function closeTopicPanel() {
+  topicPanel.classList.remove('show');
+  state.shen.currentNpc = null;
+}
+
+/* ============================================================
+   推演
+   ============================================================ */
+function enterDeduce() {
+  const missing = KEY_CLUES.filter(n => !state.collectedClues.includes(n));
+  if (missing.length > 0) {
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 线索不足。</span> 还缺：${missing.join('、')}。请回到沈园继续探索，或与 NPC 交谈。`;
+    flashFeedback();
+    actionsEl.innerHTML = '';
+    const back = document.createElement('button');
+    back.className = 'btn ghost'; back.textContent = '← 回探索补线索';
+    back.onclick = () => { AudioEngine.tap(); deduceArea.style.display = 'none'; renderShenScene(); };
+    actionsEl.appendChild(back);
+    const force = document.createElement('button');
+    force.className = 'btn'; force.textContent = '直接指认 →';
+    force.onclick = () => { AudioEngine.tap(); renderShenFinal(); };
+    actionsEl.appendChild(force);
+    return;
+  }
+  deduceArea.style.display = 'block';
+  shenScene.classList.remove('show');
+  panel.innerHTML = '';
+  renderDeduce();
+}
+
+function renderDeduce() {
+  ddSlots.innerHTML = '';
+  shenData.deduceSlots.forEach(slot => {
+    const d = document.createElement('div');
+    d.dataset.slot = slot.id;
+    d.style.cssText = 'padding:10px;background:rgba(240,228,200,0.5);border:1.5px dashed #a08a5a;border-radius:4px;cursor:pointer;transition:all 0.2s;';
+    const assigned = state.shen.slotAssign[slot.id];
+    if (assigned) { d.style.background = '#fffdf5'; d.style.borderStyle = 'solid'; d.style.borderColor = '#8b6b3a'; }
+    if (state.shen.activeSlot === slot.id) { d.style.borderColor = '#c9a227'; d.style.boxShadow = '0 0 0 2px rgba(201,162,39,0.3)'; }
+    d.innerHTML = `<div style="font-size:clamp(10px,2.6vw,11px);color:#8b1a1a;font-weight:bold;letter-spacing:0.1em;margin-bottom:2px;">${slot.time} · ${slot.hint}</div><div style="color:#3a1a10;font-size:clamp(11px,2.9vw,13px);line-height:1.5;">${assigned || '（点这里，再点下方线索）'}</div>`;
+    d.onclick = () => { state.shen.activeSlot = slot.id; renderDeduce(); };
+    ddSlots.appendChild(d);
+  });
+
+  ddClueList.innerHTML = '';
+  KEY_CLUES.forEach(name => {
+    if (!state.collectedClues.includes(name)) return;
+    const used = Object.values(state.shen.slotAssign).includes(name);
+    const b = document.createElement('button');
+    b.textContent = name;
+    b.style.cssText = `padding:8px 10px;background:#fffdf5;border:1px solid rgba(139,107,58,0.3);border-left:3px solid #c9a227;border-radius:4px;font-size:clamp(11px,2.9vw,13px);color:#3a1a10;cursor:pointer;text-align:left;font-family:inherit;${used?'opacity:0.4;cursor:default;':''}`;
+    b.disabled = used;
+    b.onclick = () => {
+      if (used) return;
+      if (!state.shen.activeSlot) { feedbackEl.innerHTML = `<span style="color:#8b7355;">先点一个时间槽，再选线索。</span>`; flashFeedback(); return; }
+      const oldClue = state.shen.slotAssign[state.shen.activeSlot];
+      if (oldClue) delete state.shen.slotAssign[state.shen.activeSlot];
+      state.shen.slotAssign[state.shen.activeSlot] = name;
+      state.shen.activeSlot = null;
+      AudioEngine.tap();
+      renderDeduce();
+    };
+    ddClueList.appendChild(b);
+  });
+
+  actionsEl.innerHTML = '';
+  const backBtn = document.createElement('button');
+  backBtn.className = 'btn ghost'; backBtn.textContent = '← 回探索';
+  backBtn.style.marginRight = 'auto';
+  backBtn.onclick = () => { AudioEngine.tap(); deduceArea.style.display = 'none'; renderShenScene(); };
+  actionsEl.appendChild(backBtn);
+
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'btn'; submitBtn.textContent = '推 演';
+  submitBtn.onclick = () => {
+    const filled = Object.keys(state.shen.slotAssign).length;
+    if (filled < 4) { feedbackEl.innerHTML = `<span style="color:#8b7355;">还有时间槽没填。</span>`; flashFeedback(); return; }
+    let allOk = true;
+    shenData.deduceSlots.forEach(slot => {
+      const assigned = state.shen.slotAssign[slot.id];
+      const slotEl = ddSlots.querySelector(`[data-slot="${slot.id}"]`);
+      if (assigned === slot.correct) {
+        if (slotEl) { slotEl.style.background = '#eaf3e0'; slotEl.style.borderColor = '#6b8b4a'; }
+      } else {
+        if (slotEl) { slotEl.style.background = '#f8e0e0'; slotEl.style.borderColor = '#8b1a1a'; }
+        allOk = false;
+      }
+    });
+    if (allOk) {
+      AudioEngine.deduceWin();
+      state.shen.deduceSolved = true;
+      feedbackEl.innerHTML = `<span style="color:#6b8b4a;">◆ 推演成功。</span> 案发顺序排对了。`;
+      flashFeedback();
+      actionsEl.innerHTML = '';
+      const goBtn = document.createElement('button');
+      goBtn.className = 'btn'; goBtn.textContent = '进入指认 →';
+      goBtn.onclick = () => renderShenFinal();
+      actionsEl.appendChild(goBtn);
+    } else {
+      AudioEngine.deduceFail();
+      state.shen.deduceFailCount++;
+      if (state.shen.deduceFailCount >= 3) {
+        feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 推演失败三次。</span> 只能直接进入指认，结局评级会下降。`;
+        flashFeedback();
+        actionsEl.innerHTML = '';
+        const goBtn = document.createElement('button');
+        goBtn.className = 'btn'; goBtn.textContent = '直接指认 →';
+        goBtn.onclick = () => renderShenFinal();
+        actionsEl.appendChild(goBtn);
+      } else {
+        state.grit = Math.max(0, state.grit - 1);
+        updateStats();
+        feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 顺序不对。</span> 扣 1 点胆识。还能再排 ${3 - state.shen.deduceFailCount} 次。`;
+        flashFeedback();
+        setTimeout(() => { ddSlots.querySelectorAll('[data-slot]').forEach(el => { el.style.background = ''; el.style.borderColor = ''; }); }, 1500);
+      }
+    }
+  };
+  actionsEl.appendChild(submitBtn);
+}
+
+/* ============================================================
+   沈园最终指认
+   ============================================================ */
+function renderShenFinal() {
+  shenScene.classList.remove('show');
+  deduceArea.style.display = 'none';
+  panel.innerHTML = '';
+  feedbackEl.textContent = '';
+  state.phase = 'final';
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `<div class="card-title">最 终 指 认<span class="tag">先指认凶手，再指认幕后</span></div>`;
+
+  const p = document.createElement('p');
+  p.style.cssText = 'font-size:clamp(13px,3.4vw,15px);color:#5a3a1a;line-height:1.75;margin-bottom:10px;';
+  p.textContent = state.loop === 2
+    ? '掌柜背对着你，声音很轻。这一次你知道得更多——但知道得越多，指认就越难。'
+    : '掌柜站在词壁前，等着你开口。你手里攥着这一路收集的线索。';
+  card.appendChild(p);
+
+  const q = document.createElement('div');
+  q.style.cssText = 'font-size:clamp(13px,3.6vw,16px);color:#3a1a10;font-weight:bold;margin-bottom:8px;line-height:1.6;';
+  q.textContent = '第一步：谁杀了沈守拙？';
+  card.appendChild(q);
+
+  const killers = [
+    { name:'苏见山', key:'su' },
+    { name:'咸亨掌柜', key:'boss' },
+    { name:'苏见山与咸亨掌柜', key:'both' }
+  ];
+  killers.forEach((k, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = `${String.fromCharCode(65+i)}. ${k.name}`;
+    b.onclick = () => { AudioEngine.chooseKiller(); chooseShenKiller(k.key, card); };
+    card.appendChild(b);
+  });
+
+  panel.appendChild(card);
+  actionsEl.innerHTML = '';
+  main.scrollTop = 0;
+}
+
+function chooseShenKiller(key, card) {
+  if (state.phase !== 'final') return;
+  state.phase = 'killer_chosen';
+  card.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  state.killerCorrect = (key === 'both');
+
+  setTimeout(() => {
+    const q2 = document.createElement('div');
+    q2.style.cssText = 'font-size:clamp(13px,3.6vw,16px);color:#3a1a10;font-weight:bold;margin:14px 0 8px;line-height:1.6;border-top:1px solid rgba(90,60,30,0.15);padding-top:12px;';
+    q2.textContent = state.loop === 2 ? '第二步：谁不想让苏婉卿那半阕被看见？' : '第二步：谁不想让墙被刮开？';
+    card.appendChild(q2);
+
+    const masterminds = [
+      { name:'沈家旁支', key:'shen' },
+      { name:'沈守拙', key:'shou' },
+      { name:'沈家旁支与沈守拙', key:'both2' }
+    ];
+    masterminds.forEach((m, i) => {
+      const b = document.createElement('button');
+      b.className = 'opt'; b.textContent = `${String.fromCharCode(65+i)}. ${m.name}`;
+      b.onclick = () => { AudioEngine.chooseKiller(); chooseShenMastermind(m.key, card); };
+      card.appendChild(b);
+    });
+    main.scrollTop = main.scrollHeight;
+  }, 400);
+}
+
+function chooseShenMastermind(key, card) {
+  if (state.phase !== 'killer_chosen') return;
+  state.phase = 'mastermind_chosen';
+  card.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  state.mastermindCorrect = (key === 'both2');
+
+  if (state.loop === 2 && state.heart >= 2) {
+    renderScrapeChoice(card);
+  } else {
+    finishShenFinal();
+  }
+}
+
+function renderScrapeChoice(card) {
+  const q = document.createElement('div');
+  q.style.cssText = 'font-size:clamp(13px,3.6vw,16px);color:#3a1a10;font-weight:bold;margin:14px 0 8px;line-height:1.6;border-top:1px solid rgba(90,60,30,0.15);padding-top:12px;';
+  q.textContent = '第三步：你打算怎么处理那层灰？';
+  card.appendChild(q);
+  const p = document.createElement('p');
+  p.style.cssText = 'font-size:clamp(12px,3.1vw,14px);color:#8b7355;line-height:1.75;margin-bottom:8px;';
+  p.textContent = '你的心证已满。你可以让那半阕重见天日，也可以让它留在灰下。';
+  card.appendChild(p);
+
+  const choices = [
+    { text:'把灰刮开。', key:'scrape' },
+    { text:'把灰重新抹上。', key:'keep' }
+  ];
+  choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt heart-choice';
+    b.textContent = `${String.fromCharCode(65+i)}. ${c.text}`;
+    b.onclick = () => {
+      AudioEngine.heart();
+      state.scrapeChoice = c.key;
+      card.querySelectorAll('.opt').forEach(x => x.disabled = true);
+      b.classList.add('correct');
+      feedbackEl.innerHTML = `<span style="color:#8b1a1a;">◆ 心证已定。</span>`;
+      flashFeedback();
+      showNextButton('查看结局 →', finishShenFinal);
+    };
+    card.appendChild(b);
+  });
+  main.scrollTop = main.scrollHeight;
+}
+
+function finishShenFinal() {
+  state.phase = 'result';
+  const c = state.clues;
+  const killerOk = state.killerCorrect, masterOk = state.mastermindCorrect;
+  const deduceOk = state.shen && state.shen.deduceSolved;
+  const deducePenalty = !deduceOk || (state.shen && state.shen.deduceFailCount >= 3);
+  const scrape = state.scrapeChoice || null;
+  let title, rank, detail;
+
+  if (state.loop === 1) {
+    if (killerOk && masterOk && c >= 4 && !deducePenalty) {
+      title = '真 相 的 一 半'; rank = '上 上';
+      detail = '你指认苏见山拔刀、掌柜按手，两个人一起送走了沈守拙。你也指认了沈家守了八百年的事。但墙下面到底是什么，你没打开看。';
+    } else if (killerOk && !masterOk) {
+      title = '抓 住 了 手'; rank = '中 上';
+      detail = '你指认了苏见山和掌柜，却指错了幕后。你抓到了手，却没看到手后面是谁。';
+    } else if (!killerOk && masterOk) {
+      title = '看 见 了 影'; rank = '中 上';
+      detail = '你指错了凶手，却指对了沈家。沈守拙的案子成了悬案。';
+    } else if (killerOk || masterOk) {
+      title = '差 一 步'; rank = '中 平';
+      detail = '你只指对了一半。沈园的灯笼晃了晃。';
+    } else {
+      title = '夜 深 灯 灭'; rank = '下 下';
+      detail = '你什么都没指对。掌柜转身走进月门。';
+    }
+    if (deducePenalty) { title += '（推演未成）'; rank = rank.replace('上', '中'); }
+  } else {
+    if (killerOk && masterOk && c >= 6 && !deducePenalty) {
+      if (scrape === 'scrape') {
+        title = '钗 头 重 见'; rank = '上 上 上';
+        detail = '你刮开灰。墙上两层字。沈砚之的《钗头令》在上，苏婉卿的和词在下，署着“苏婉卿”。八百年灰落一地。';
+      } else if (scrape === 'keep') {
+        title = '灰 下 留 名'; rank = '上 上 上';
+        detail = '你把灰重新抹上。墙上还是只有沈砚之那一阕。苏婉卿那半阕，仍然在灰下面。你走出沈园时回头看了一眼。你知道那半阕还在。知道，不等于要说出去。';
+      } else {
+        title = '真 相 大 白'; rank = '上 上 上';
+        detail = '你指认了苏见山和掌柜，指认了沈家。墙下面那半阕，你没打开看。';
+      }
+    } else if (killerOk && masterOk) {
+      title = '真 相 的 一 半'; rank = '上 上';
+      detail = '你指对了凶手和幕后，但线索太少。';
+    } else if (killerOk || masterOk) {
+      title = '差 一 步'; rank = '中 平';
+      detail = '你只指对了一半。';
+    } else {
+      title = '你 才 是 推 手'; rank = '？';
+      detail = '你什么都没指对。掌柜忽然笑了：“其实，你三天前托我寻词笺的时候，就已经卷进来了。”';
+    }
+    if (deducePenalty) { title += '（推演未成）'; rank = rank.replace('上上上', '中上').replace('上上', '中上').replace('上', '中'); }
+  }
+
+  state.ending = { title, rank, detail, truth: buildTruth(state.loop, scrape) };
+  feedbackEl.innerHTML = `<span style="color:#8b1a1a;font-weight:bold;">${title}</span>`;
+  flashFeedback();
+  if (rank.includes('上')) AudioEngine.endGood(); else AudioEngine.endBad();
+  showNextButton('查看结局 →', renderEnding);
+}
+
+/* ============================================================
+   故事真相
+   ============================================================ */
+function buildTruth(loop, scrape) {
+  if (loop === 1) {
+    return [
+      '沈园的粉墙上，刻着沈砚之的《钗头令》。这阕词被世代传抄，字迹被摸得发亮。可墙上又覆着一层新抹的灰——有人想盖住灰下的什么，也有人一心要把它刮开。',
+      '沈守拙是这一代的守亭人，替沈家守着这面墙。咸亨掌柜是他的旧交，守了他二十年。',
+      '案发当夜，沈守拙到兰亭与掌柜争吵。苏见山随后赶到，拔刀相逼。刀插进了沈守拙的胸口。沈守拙临死前说“别刮”——他不愿苏见山背上杀人的名，也不愿那层灰被揭开。掌柜按着他的手，把灰抹了回去。',
+      '苏见山拔了刀，掌柜按了手，两个人一起送走了沈守拙。阿沈知道苏见山要去兰亭，没有拦——他想让那层灰被刮开，却不敢自己动手。',
+      '这是一桩没有凶手的凶案。每个人都在守一样东西：沈守拙守那层灰，掌柜守旧交，苏见山守一个想重见天日的名字，阿沈守一个不敢说出口的等待。至于那层灰下面到底藏着什么、苏见山要的那个名字是谁——这一周目你看不清，要等下一周目。'
+    ];
+  }
+  // 第二周目
+  const base = [
+    '沈砚之写下《钗头令》，苏婉卿和了一阕。沈家却将和词封在灰下，不肯署名。沈守拙守了八百年，守的不是词，是一个不能说的名字。',
+    '苏见山是苏婉卿的后人。他托你寻词笺，是想凑齐刮墙的由头。咸亨掌柜守着沈守拙，沈守拙守着秘密，阿沈守着祖上盖过的那层灰。',
+    '案发当夜，兰亭里三个人：掌柜、沈守拙、苏见山。苏见山拔刀，刀入胸口。沈守拙临死说“别刮”，让掌柜别声张——他不愿苏见山背上杀人的名。掌柜按着他的手，把灰抹了回去。'
+  ];
+  if (scrape === 'scrape') {
+    return base.concat([
+      '灰下那半阕终于重见天日：苏婉卿的和词，署着她的名字。八百年的灰落了一地。',
+      '你刮开了。苏婉卿的名字回到了墙上。沈守拙守了八百年不许人碰的东西，在你手里碎了，也完整了。'
+    ]);
+  } else if (scrape === 'keep') {
+    return base.concat([
+      '你把灰重新抹上。墙上还是只有沈砚之那一阕。苏婉卿那半阕，仍然在灰下面。',
+      '你走出沈园时回头看了一眼。你知道那半阕还在。知道，不等于要说出去。沈守拙守了八百年的东西，你替他再守一段。'
+    ]);
+  }
+  return base.concat([
+    '墙下面那半阕，你始终没打开看。但你已经知道它在那里——苏婉卿的名字，沈守拙的八百年，掌柜的二十年，阿沈的一辈子。',
+    '有些真相不必刮开灰，也能被记住。'
+  ]);
+}
+
+/* ============================================================
+   前四关小游戏
+   ============================================================ */
+function makeCard(title, tag) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const t = document.createElement('div');
+  t.className = 'card-title';
+  t.innerHTML = `${title}<span class="tag">${tag||''}</span>`;
+  card.appendChild(t);
+  return card;
+}
+
+function renderZi(s) {
+  panel.innerHTML = '';
+  const card = makeCard('辨 字 令', '从字形辨出残缺的字');
+  const p = document.createElement('div');
+  p.className = 'zi-prompt'; p.innerHTML = s.zi.prompt;
+  card.appendChild(p);
+  const grid = document.createElement('div');
+  grid.className = 'zi-choices';
+  s.zi.choices.forEach((ch, i) => {
+    const b = document.createElement('button');
+    b.className = 'zi-btn'; b.textContent = ch;
+    b.onclick = () => { AudioEngine.tap(); answerZi(i, b, s.zi); };
+    grid.appendChild(b);
+  });
+  card.appendChild(grid);
+  panel.appendChild(card);
+}
+function answerZi(idx, btn, g) {
+  if (state.phase !== 'challenge') return;
+  state.phase = 'result';
+  btn.parentElement.querySelectorAll('.zi-btn').forEach(b => b.disabled = true);
+  if (idx === g.answer) {
+    btn.classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#6b8b4a;">✓ 认出来了。</span> ${g.tip}<br><span style="color:#8b1a1a;">获线索：「${g.winClue}」</span>`;
+    addClue(g.winClue); state.grit++; updateStats(); AudioEngine.ziCorrect();
+  } else {
+    btn.classList.add('wrong');
+    btn.parentElement.children[g.answer].classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">✗ 认错了。</span> ${g.tip}<br><span style="color:#8b7355;">${g.loseDesc}</span>`;
+    AudioEngine.ziWrong();
+  }
+  flashFeedback();
+  showNextButton('继续追查 →', () => renderHeartChoice(scenes[state.scene], advance));
+}
+
+function renderShi(s) {
+  panel.innerHTML = '';
+  const card = makeCard('接 诗 令', '接上下一句');
+  const stem = document.createElement('div');
+  stem.className = 'shi-stem';
+  stem.textContent = s.shi.stem;
+  const hint = document.createElement('span');
+  hint.className = 'hint'; hint.textContent = s.shi.hint;
+  stem.appendChild(hint);
+  card.appendChild(stem);
+  s.shi.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = `${String.fromCharCode(65+i)}. ${c}`;
+    b.onclick = () => { AudioEngine.tap(); answerShi(i, b, s.shi, card); };
+    card.appendChild(b);
+  });
+  panel.appendChild(card);
+}
+function answerShi(idx, btn, g, card) {
+  if (state.phase !== 'challenge') return;
+  state.phase = 'result';
+  card.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  if (idx === g.answer) {
+    btn.classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#6b8b4a;">✓ 接上了。</span> ${g.tip}<br><span style="color:#8b1a1a;">获线索：「${g.winClue}」</span>`;
+    addClue(g.winClue); state.grit++; updateStats(); AudioEngine.shiCorrect();
+  } else {
+    btn.classList.add('wrong');
+    card.querySelectorAll('.opt')[g.answer].classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">✗ 接错了。</span> ${g.tip}<br><span style="color:#8b7355;">${g.loseDesc}</span>`;
+    AudioEngine.shiWrong();
+  }
+  flashFeedback();
+  showNextButton('继续追查 →', () => renderHeartChoice(scenes[state.scene], advance));
+}
+
+let pinState = null;
+function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function renderPin(s) {
+  panel.innerHTML = '';
+  const card = makeCard('拼 帖 令', '按顺序点字 · 可撤销');
+  const g = s.pin;
+  let shuffled, attempts = 0;
+  do { shuffled = shuffle(g.sentence); attempts++; } while (shuffled.join('') === g.sentence.join('') && attempts < 20);
+  pinState = { placed: [], pool: shuffled.map((ch, i) => ({ ch, id: i, used: false })), g };
+  const p = document.createElement('div');
+  p.className = 'zi-prompt'; p.textContent = g.prompt;
+  card.appendChild(p);
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:clamp(11px,3vw,13px);color:#8b7355;margin-bottom:10px;line-height:1.7;';
+  hint.textContent = '提示：' + g.hint;
+  card.appendChild(hint);
+  const slots = document.createElement('div');
+  slots.className = 'pin-slots'; slots.id = 'pinSlots';
+  card.appendChild(slots);
+  const pool = document.createElement('div');
+  pool.className = 'pin-pool'; pool.id = 'pinPool';
+  card.appendChild(pool);
+  const pinActions = document.createElement('div');
+  pinActions.className = 'pin-actions';
+  const undoBtn = document.createElement('button');
+  undoBtn.className = 'pin-undo'; undoBtn.id = 'pinUndo'; undoBtn.textContent = '↶ 撤销上一步';
+  undoBtn.onclick = () => { AudioEngine.undo(); undoPin(); };
+  pinActions.appendChild(undoBtn);
+  card.appendChild(pinActions);
+  panel.appendChild(card);
+  renderPinBoard();
+}
+function renderPinBoard() {
+  const slotsEl = $('pinSlots'), poolEl = $('pinPool');
+  if (!slotsEl || !poolEl || !pinState) return;
+  const total = pinState.g.sentence.length;
+  const locked = state.phase === 'result';
+  slotsEl.innerHTML = ''; poolEl.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'pin-slot';
+    if (pinState.placed[i]) {
+      d.textContent = pinState.placed[i].ch;
+      d.classList.add('filled');
+      if (!locked) d.onclick = () => { AudioEngine.undo(); undoSlot(i); };
+    }
+    slotsEl.appendChild(d);
+  }
+  pinState.pool.forEach(tile => {
+    const b = document.createElement('button');
+    b.className = 'pin-tile' + (tile.used ? ' used' : '');
+    b.textContent = tile.ch;
+    if (!tile.used && !locked) b.onclick = () => { AudioEngine.tap(); pickPin(tile); };
+    poolEl.appendChild(b);
+  });
+  const undoBtn = $('pinUndo');
+  if (undoBtn) undoBtn.disabled = locked || pinState.placed.length === 0;
+}
+function pickPin(tile) {
+  if (state.phase !== 'challenge' || !pinState) return;
+  if (tile.used || pinState.placed.length >= pinState.g.sentence.length) return;
+  tile.used = true; pinState.placed.push(tile); renderPinBoard();
+  if (pinState.placed.length === pinState.g.sentence.length) checkPin();
+}
+function undoPin() {
+  if (state.phase === 'result' || !pinState) return;
+  const tile = pinState.placed.pop(); if (tile) tile.used = false;
+  renderPinBoard();
+}
+function undoSlot(idx) {
+  if (state.phase === 'result' || !pinState) return;
+  const removed = pinState.placed.splice(idx); removed.forEach(t => t.used = false);
+  renderPinBoard();
+}
+function checkPin() {
+  if (!pinState) return;
+  state.phase = 'result';
+  const g = pinState.g;
+  const userSeq = pinState.placed.map(t => t.ch).join('');
+  const correctSeq = g.sentence.join('');
+  const slotsEl = $('pinSlots');
+  const ok = userSeq === correctSeq;
+  if (slotsEl) slotsEl.querySelectorAll('.pin-slot').forEach((sl, i) => setTimeout(() => sl.classList.add(ok ? 'ok' : ''), i * 60));
+  renderPinBoard();
+  if (ok) {
+    feedbackEl.innerHTML = `<span style="color:#6b8b4a;">✓ 拼对了。</span> ${g.tip}<br><span style="color:#8b1a1a;">获线索：「${g.winClue}」</span>`;
+    addClue(g.winClue); state.grit++; updateStats(); setTimeout(() => AudioEngine.pinCorrect(), 300);
+  } else {
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">✗ 拼错了。</span> 正确顺序是「${correctSeq}」。${g.tip}<br><span style="color:#8b7355;">${g.loseDesc}</span>`;
+    AudioEngine.pinWrong();
+  }
+  flashFeedback();
+  showNextButton('继续追查 →', () => renderHeartChoice(scenes[state.scene], advance));
+}
+
+function renderDialect(s) {
+  panel.innerHTML = '';
+  const card = makeCard('方 言 令', '听懂绍兴话');
+  const p = document.createElement('div');
+  p.className = 'zi-prompt'; p.textContent = s.dialect.prompt;
+  card.appendChild(p);
+  const box = document.createElement('div');
+  box.className = 'dialect-box';
+  box.innerHTML = `<div class="word">${s.dialect.word}</div><div class="pron">${s.dialect.pron}</div>`;
+  card.appendChild(box);
+  s.dialect.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = `${String.fromCharCode(65+i)}. ${c}`;
+    b.onclick = () => { AudioEngine.tap(); answerGeneric(i, b, s.dialect, card, 'opt'); };
+    card.appendChild(b);
+  });
+  panel.appendChild(card);
+}
+
+function renderBridge(s) {
+  panel.innerHTML = '';
+  const card = makeCard('算 桥 令', '绍兴古桥考');
+  const p = document.createElement('div');
+  p.className = 'zi-prompt'; p.textContent = s.bridge.prompt;
+  card.appendChild(p);
+  const box = document.createElement('div');
+  box.className = 'bridge-box'; box.innerHTML = s.bridge.detail;
+  card.appendChild(box);
+  const grid = document.createElement('div');
+  grid.className = 'bridge-choices';
+  s.bridge.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'bridge-btn'; b.textContent = c;
+    b.onclick = () => { AudioEngine.tap(); answerGeneric(i, b, s.bridge, grid, 'bridge-btn'); };
+    grid.appendChild(b);
+  });
+  card.appendChild(grid);
+  panel.appendChild(card);
+}
+
+function renderCouplet(s) {
+  panel.innerHTML = '';
+  const card = makeCard('对 句 令', '对出下联');
+  const p = document.createElement('div');
+  p.className = 'zi-prompt'; p.textContent = s.couplet.prompt;
+  card.appendChild(p);
+  const stem = document.createElement('div');
+  stem.className = 'shi-stem';
+  stem.textContent = s.couplet.stem;
+  const hint = document.createElement('span');
+  hint.className = 'hint'; hint.textContent = s.couplet.hint;
+  stem.appendChild(hint);
+  card.appendChild(stem);
+  s.couplet.choices.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = `${String.fromCharCode(65+i)}. ${c}`;
+    b.onclick = () => { AudioEngine.tap(); answerGeneric(i, b, s.couplet, card, 'opt'); };
+    card.appendChild(b);
+  });
+  panel.appendChild(card);
+}
+
+function answerGeneric(idx, btn, g, container, cls) {
+  if (state.phase !== 'challenge') return;
+  state.phase = 'result';
+  const all = container.querySelectorAll('.' + cls);
+  all.forEach(b => b.disabled = true);
+  if (idx === g.answer) {
+    btn.classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#6b8b4a;">✓ 答对了。</span> ${g.tip}<br><span style="color:#8b1a1a;">获线索：「${g.winClue}」</span>`;
+    addClue(g.winClue); state.grit++; updateStats(); AudioEngine.shiCorrect();
+  } else {
+    btn.classList.add('wrong');
+    all[g.answer].classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#8b1a1a;">✗ 答错了。</span> ${g.tip}<br><span style="color:#8b7355;">${g.loseDesc}</span>`;
+    AudioEngine.shiWrong();
+  }
+  flashFeedback();
+  showNextButton('继续追查 →', () => renderHeartChoice(scenes[state.scene], advance));
+}
+
+/* ============================================================
+   五行 / 猜拳
+   ============================================================ */
+const WUXING = ['金','木','水','火','土'];
+const ICON = { 金:'⬜', 木:'🌿', 水:'💧', 火:'🔥', 土:'🟫' };
+const KE = { 金:'木', 木:'土', 土:'水', 水:'火', 火:'金' };
+let wxState = null;
+
+function renderWuxingScene() {
+  panel.innerHTML = '';
+  actionsEl.innerHTML = '';
+  state.phase = 'wuxing';
+  showBackButton();
+  showAskButton();
+  addTokenCard(panel, null);
+  wxState = { round:0, wins:0, loses:0, draws:0, finished:false };
+  const card = makeCard('五 行 生 死 局', '三局两胜 · 输一局扣线索');
+  card.innerHTML += `
+    <div class="wx-intro">${scenes[state.scene].wuxing.intro}</div>
+    <div class="wx-board">
+      <div class="wx-side"><div class="who">你</div><div class="elem" id="wxPlayer">—</div></div>
+      <div class="wx-vs">对<br>阵</div>
+      <div class="wx-side"><div class="who">苏见山</div><div class="elem" id="wxNpc">—</div></div>
+    </div>
+    <div class="wx-rounds" id="wxRounds"></div>
+    <div class="wx-choices" id="wxChoices"></div>
+    <div class="wx-result" id="wxResult"></div>`;
+  panel.appendChild(card);
+  renderWxChoices();
+  main.scrollTop = 0;
+}
+function renderWxChoices() {
+  const wrap = $('wxChoices'); if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!wxState || wxState.finished) return;
+  WUXING.forEach(e => {
+    const b = document.createElement('button');
+    b.className = 'wx-elem';
+    b.innerHTML = `<span>${ICON[e]}</span><span class="small">${e}</span>`;
+    b.onclick = () => { AudioEngine.tap(); playWxRound(e); };
+    wrap.appendChild(b);
+  });
+  const rEl = $('wxRounds');
+  if (rEl) rEl.innerHTML = `第 ${wxState.round+1} 局 · <span class="win">${wxState.wins}胜</span> <span class="lose">${wxState.loses}负</span> <span class="draw">${wxState.draws}平</span>`;
+}
+function playWxRound(p) {
+  if (!wxState || wxState.finished) return;
+  const n = WUXING[Math.floor(Math.random()*5)];
+  const pe = $('wxPlayer'), ne = $('wxNpc');
+  if (!pe || !ne) return;
+  pe.textContent = ICON[p]; ne.textContent = ICON[n];
+  let txt, resType;
+  if (p === n) { wxState.draws++; txt = `你出 ${p}，对方出 ${n}。平。`; resType = 'draw'; }
+  else if (KE[p] === n) { wxState.wins++; txt = `你出 ${p}，对方出 ${n}。你胜。`; resType = 'win'; }
+  else if (KE[n] === p) {
+    wxState.loses++;
+    const lost = takeRandomClue();
+    txt = lost ? `你出 ${p}，对方出 ${n}。对方胜。抽走线索：「${lost}」。` : `你出 ${p}，对方出 ${n}。对方胜。你已无线索可失。`;
+    resType = 'lose';
+  } else { wxState.draws++; txt = `你出 ${p}，对方出 ${n}。平。`; resType = 'draw'; }
+  wxState.round++;
+  const rEl = $('wxResult'); if (rEl) rEl.innerHTML = txt;
+  if (resType === 'win') AudioEngine.wxWin(); else if (resType === 'lose') AudioEngine.wxLose(); else AudioEngine.wxDraw();
+  updateStats();
+  if (wxState.wins >= 2 || wxState.loses >= 2 || wxState.round >= 3) {
+    wxState.finished = true; renderWxChoices(); finishWuxing();
+  } else renderWxChoices();
+}
+function takeRandomClue() {
+  const takable = state.collectedClues.filter(c => !KEY_CLUES.includes(c));
+  if (takable.length === 0) return null;
+  const lost = takable.pop();
+  state.collectedClues.splice(state.collectedClues.indexOf(lost), 1);
+  state.clues--;
+  return lost;
+}
+function finishWuxing() {
+  const s = scenes[state.scene], won = wxState && wxState.wins > wxState.loses;
+  const wrap = $('wxChoices'); if (!wrap) return;
+  wrap.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.className = 'btn'; btn.textContent = won ? '收下供词 →' : '接受结果 →';
+  btn.onclick = () => {
+    AudioEngine.tap();
+    if (won) {
+      addClue(s.wuxing.winClue); state.grit++;
+      feedbackEl.innerHTML = `<span style="color:#8b1a1a;">获线索：「${s.wuxing.winClue}」</span>`;
+    } else feedbackEl.innerHTML = `<span style="color:#8b7355;">${s.wuxing.loseDesc}</span>`;
+    flashFeedback(); updateStats();
+    showNextButton('继续前行 →', () => renderHeartChoice(scenes[state.scene], advance));
+  };
+  wrap.appendChild(btn); updateStats();
+}
+
+const HANDS = [{ key:'rock', name:'石头', icon:'✊' },{ key:'scissors', name:'剪刀', icon:'✌️' },{ key:'paper', name:'布', icon:'✋' }];
+const QP_BEATS = { rock:'scissors', scissors:'paper', paper:'rock' };
+let qpState = null;
+
+function renderQpScene() {
+  panel.innerHTML = '';
+  actionsEl.innerHTML = '';
+  state.phase = 'qp';
+  showBackButton();
+  showAskButton();
+  addTokenCard(panel, null);
+  qpState = { round:0, wins:0, loses:0, draws:0, finished:false };
+  const card = makeCard('酒 令 猜 拳', '三局两胜 · 输一局扣线索');
+  card.innerHTML += `
+    <div class="wx-intro">${scenes[state.scene].qp.intro}</div>
+    <div class="qp-board">
+      <div class="qp-side"><div class="who">你</div><div class="hand" id="qpPlayer">—</div></div>
+      <div class="qp-vs">对<br>阵</div>
+      <div class="qp-side"><div class="who">苏见山</div><div class="hand" id="qpNpc">—</div></div>
+    </div>
+    <div class="qp-rounds" id="qpRounds"></div>
+    <div class="qp-choices" id="qpChoices"></div>
+    <div class="qp-result" id="qpResult"></div>`;
+  panel.appendChild(card);
+  renderQpChoices();
+  main.scrollTop = 0;
+}
+function renderQpChoices() {
+  const wrap = $('qpChoices'); if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!qpState || qpState.finished) return;
+  HANDS.forEach(h => {
+    const b = document.createElement('button');
+    b.className = 'qp-elem';
+    b.innerHTML = `<span>${h.icon}</span><span class="small">${h.name}</span>`;
+    b.onclick = () => { AudioEngine.tap(); playQpRound(h.key); };
+    wrap.appendChild(b);
+  });
+  const rEl = $('qpRounds');
+  if (rEl) rEl.innerHTML = `第 ${qpState.round+1} 局 · <span class="win">${qpState.wins}胜</span> <span class="lose">${qpState.loses}负</span> <span class="draw">${qpState.draws}平</span>`;
+}
+function playQpRound(playerKey) {
+  if (!qpState || qpState.finished) return;
+  const npcHand = HANDS[Math.floor(Math.random()*3)];
+  const playerHand = HANDS.find(h => h.key === playerKey);
+  const pe = $('qpPlayer'), ne = $('qpNpc');
+  if (!pe || !ne) return;
+  pe.textContent = playerHand.icon; ne.textContent = npcHand.icon;
+  let txt, resType;
+  if (playerKey === npcHand.key) { qpState.draws++; txt = `你出${playerHand.name}，对方出${npcHand.name}。平。`; resType = 'draw'; }
+  else if (QP_BEATS[playerKey] === npcHand.key) { qpState.wins++; txt = `你出${playerHand.name}，对方出${npcHand.name}。你胜。`; resType = 'win'; }
+  else {
+    qpState.loses++;
+    const lost = takeRandomClue();
+    txt = lost ? `你出${playerHand.name}，对方出${npcHand.name}。对方胜。抽走线索：「${lost}」。` : `你出${playerHand.name}，对方出${npcHand.name}。对方胜。`;
+    resType = 'lose';
+  }
+  qpState.round++;
+  const rEl = $('qpResult'); if (rEl) rEl.innerHTML = txt;
+  if (resType === 'win') AudioEngine.wxWin(); else if (resType === 'lose') AudioEngine.wxLose(); else AudioEngine.wxDraw();
+  updateStats();
+  if (qpState.wins >= 2 || qpState.loses >= 2 || qpState.round >= 3) {
+    qpState.finished = true; renderQpChoices(); finishQp();
+  } else renderQpChoices();
+}
+function finishQp() {
+  const s = scenes[state.scene], won = qpState && qpState.wins > qpState.loses;
+  const wrap = $('qpChoices'); if (!wrap) return;
+  wrap.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.className = 'btn'; btn.textContent = won ? '收下口风 →' : '接受结果 →';
+  btn.onclick = () => {
+    AudioEngine.tap();
+    if (won) {
+      addClue(s.qp.winClue); state.grit++;
+      feedbackEl.innerHTML = `<span style="color:#8b1a1a;">获线索：「${s.qp.winClue}」</span>`;
+    } else feedbackEl.innerHTML = `<span style="color:#8b7355;">${s.qp.loseDesc}</span>`;
+    flashFeedback(); updateStats();
+    showNextButton('继续前行 →', () => renderHeartChoice(scenes[state.scene], advance));
+  };
+  wrap.appendChild(btn); updateStats();
+}
+
+/* ============================================================
+   前四关问询
+   ============================================================ */
+function openNpcDialog(sceneIdx) {
+  const s = scenes[sceneIdx];
+  if (!s || !s.npc) return;
+  const npc = s.npc;
+  overlayInner.style.display = 'block';
+  overlayInner.classList.add('show');
+  $('dialogTitle').textContent = '问 询 · ' + npc.name;
+  let html = `<div class="npc-line"><div class="npc-face">${npc.face}</div>
+    <div><div class="npc-name">${npc.name}</div><div class="npc-role">${npc.role}</div></div></div>`;
+  html += `<div class="testimony">`;
+  npc.testimony.filter(t => t.loop <= state.loop).forEach(t => html += `<div class="quote">${t.text}</div>`);
+  html += `</div>`;
+  npc.contradictions.filter(c => c.loop <= state.loop).forEach(c => {
+    if (state.pressedContradictions.includes(c.id)) {
+      html += `<div class="contradiction"><strong>已戳破：</strong>${c.press}<br><span style="color:#2a1e14;">${c.reveal}</span><br><span style="color:#8b1a1a;">获线索：「${c.clue}」</span></div>`;
+    } else {
+      const can = state.grit >= c.gritCost;
+      html += `<div class="contradiction ${can?'':'locked'}"><strong>疑点：</strong>${c.doubt}<br>
+        <button class="pressBtn" ${can?'':'disabled'} onclick="pressContradiction('${c.id}')">质问（消耗胆识 ×${c.gritCost}）</button></div>`;
+    }
+  });
+  if (!npc.contradictions.some(c => c.loop <= state.loop)) html += `<div class="contradiction locked">你暂时看不出什么破绽。</div>`;
+  $('dialogBody').innerHTML = html;
+  overlayInner.scrollTop = 0;
+}
+function closeOverlay() {
+  AudioEngine.tap();
+  overlayInner.classList.remove('show');
+  overlayInner.style.display = 'none';
+  overlayInner.scrollTop = 0;
+}
+function pressContradiction(cid) {
+  let target = null, si = -1;
+  scenes.forEach((s,i) => { if (s.npc) s.npc.contradictions.forEach(c => { if (c.id===cid){target=c;si=i;} }); });
+  if (!target || state.pressedContradictions.includes(cid) || state.grit < target.gritCost) return;
+  state.grit -= target.gritCost; state.pressedContradictions.push(cid);
+  addClue(target.clue);
+  openNpcDialog(si);
+}
+
+/* ============================================================
+   结局
+   ============================================================ */
+function renderEnding() {
+  topbar.style.display = 'none';
+  route.style.display = 'none';
+  sceneBox.style.display = 'none';
+  shenScene.classList.remove('show');
+  deduceArea.style.display = 'none';
+  clearTokenCard();
+  panel.innerHTML = '';
+  overlayInner.classList.remove('show');
+  overlayInner.style.display = 'none';
+  feedbackEl.style.display = 'none';
+  actionsEl.style.display = 'none';
+  clueBar.style.display = 'none';
+  topicPanel.classList.remove('show');
+  main.style.overflowY = 'hidden';
+  main.scrollTop = 0;
+  endScreen.classList.add('show');
+  endScreen.style.display = 'block';
+  const e = state.ending || { title:'归 途', rank:'中', detail:'你走出了绍兴城。', truth:'' };
+  const titleChars = e.title.split('').map((ch, i) => `<span class="char" style="animation-delay:${i * 0.09}s">${ch}</span>`).join('');
+  let html = `<h2>${titleChars}</h2><div class="rank">${e.rank}</div>
+    <div class="verdict">收集 <strong>${state.clues}</strong> 条线索，戳破 <strong>${state.pressedContradictions.length}</strong> 处矛盾，心证 <strong>${state.heart}</strong>，剩余胆识 <strong>${state.grit}</strong>。</div>
+    <div class="detail">${e.detail}</div>`;
+  if (e.truth) {
+    const paras = Array.isArray(e.truth) ? e.truth : [e.truth];
+    html += `<div class="truth-card"><div class="tc-title">◆ 故事真相</div>${paras.map(p => `<p>${p}</p>`).join('')}</div>`;
+  }
+  html += `<div class="meta">线索：${state.collectedClues.length ? state.collectedClues.join(' · ') : '（无）'}</div>`;
+  if (state.loop === 1) {
+    html += `<div class="unlock"><strong>◆ 第二周目已解锁</strong><br>新周目将出现：各 NPC 全部换新证词；沈园换白天新图；可触及苏婉卿的真相。</div>
+      <button class="btn" onclick="AudioEngine.tap(); startLoop2()">进 入 第 二 周 目</button>`;
+  } else {
+    html += `<div class="unlock"><strong>◆ 全本通关</strong><br>你已走完两周目。</div>
+      <button class="btn" onclick="AudioEngine.tap(); location.reload()">从 头 再 走</button>`;
+  }
+  endScreen.innerHTML = html;
+}
+
+function startLoop2() {
+  state.scene=0; state.phase='challenge'; state.tokens=2; state.clues=0; state.grit=3; state.heart=0;
+  state.loop=2; state.collectedClues=[]; state.usedTokens=[]; state.pressedContradictions=[];
+  state.ending=null; state.shen=null;
+  state.killerCorrect=false; state.mastermindCorrect=false; state.scrapeChoice=null;
+  topbar.style.display = 'flex';
+  route.style.display = 'flex';
+  sceneBox.style.display = 'block';
+  feedbackEl.style.display = 'block';
+  actionsEl.style.display = 'flex';
+  clueBar.style.display = 'none';
+  endScreen.style.display = 'none';
+  endScreen.classList.remove('show');
+  main.style.overflowY = 'auto';
+  renderScene();
+  main.scrollTop = 0;
+}
+
+function advance() {
+  if (state.phase === 'result' || state.phase === 'wuxing' || state.phase === 'qp') {
+    state.scene++; state.phase='challenge';
+    if (state.scene >= scenes.length) { renderEnding(); return; }
+    state.usedTokens = [];
+    renderScene();
+  }
+}
+
+renderScene();
+</script>
+</body>
+</html>
